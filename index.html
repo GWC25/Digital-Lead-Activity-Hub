@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Digital Leads · Activity Hub</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Fraunces:wght@300;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -218,9 +217,9 @@ hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
   <div class="hdr-right">
     <div class="auth-status">
       <div class="auth-dot" id="auth-dot"></div>
-      <span class="auth-name" id="auth-name">Not signed in</span>
+      <span class="auth-name" id="auth-name">Loading data…</span>
     </div>
-    <button class="btn-sign" id="btn-sign" onclick="handleSignIn()">Sign in</button>
+    <button class="btn-sign" id="btn-refresh-hdr" onclick="refreshData()" style="display:none">↻ Refresh</button>
   </div>
 </header>
 
@@ -238,9 +237,9 @@ hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
   <div class="view active" id="view-log" role="tabpanel">
   <div class="inner">
 
-    <div class="fallback-banner" id="fallback-banner">
+    <div class="fallback-banner hidden" id="fallback-banner">
       <span>⚠</span>
-      <div><strong>Running in offline mode.</strong> Sign in with your Weston College Microsoft account to save entries to the shared SharePoint list. Your entries are being saved locally to this browser only.</div>
+      <div id="fallback-msg">Connecting to data…</div>
     </div>
 
     <div class="form-card">
@@ -431,46 +430,44 @@ hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
   <div class="inner">
 
     <div class="setup-card">
-      <div class="setup-title">Setup &amp; connection guide</div>
-      <div class="setup-sub">This dashboard reads live data from the Microsoft Forms → Excel workbook. Digital Leads submit activity via the Microsoft Form. This HTML file shows the data as charts and tables.</div>
+      <div class="setup-title">How this dashboard works</div>
+      <div class="setup-sub">No sign-in required. No IT setup needed. The dashboard reads directly from the shared Excel workbook — anyone with the link to this page sees live data.</div>
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1.25rem">
-        <div style="font-size:.65rem;font-family:var(--fm);color:var(--muted);margin-bottom:.3rem;letter-spacing:.05em;text-transform:uppercase">Current connection status</div>
-        <div id="conn-indicator" style="font-size:.8rem;font-weight:500">… Detecting…</div>
+        <div style="font-size:.65rem;font-family:var(--fm);color:var(--muted);margin-bottom:.3rem;letter-spacing:.05em;text-transform:uppercase">Connection status</div>
+        <div id="conn-indicator" style="font-size:.8rem;font-weight:500">Check the header bar above</div>
       </div>
 
       <div class="setup-step">
         <div class="step-num" style="background:var(--teal)">1</div>
         <div class="step-body">
-          <div class="step-title">Tier 1 — SharePoint session (no IT setup needed)</div>
-          <div class="step-desc">If this HTML file is hosted on your SharePoint site and opened while you're logged into Microsoft 365, it connects automatically using your existing session. No sign-in prompt, no app registration. <strong>This is the recommended starting point.</strong></div>
-          <div style="margin-top:.5rem;font-size:.75rem;color:var(--muted)">How to host it: upload the HTML file to the Digital Champions SharePoint site → Documents library → share the link as a Teams tab.</div>
-          <div class="code-block">Site: https://weston.sharepoint.com/sites/WC_STU_24DigitalChampions</div>
-          <button class="btn-primary" style="margin-top:.5rem" onclick="createList()">Create the SharePoint list (first time only)</button>
-          <div id="list-status" style="margin-top:.5rem;font-size:.75rem;font-family:var(--fm)"></div>
+          <div class="step-title">Digital Leads submit via Microsoft Form</div>
+          <div class="step-desc">Digital Leads use only the Microsoft Form link you share with them. They don't need to open this dashboard at all. Every submission automatically adds a row to the Excel workbook in your OneDrive.</div>
         </div>
       </div>
 
       <div class="setup-step">
         <div class="step-num" style="background:var(--blue)">2</div>
         <div class="step-body">
-          <div class="step-title">Tier 2 — Microsoft Graph API (needs one IT conversation)</div>
-          <div class="step-desc">If Tier 1 doesn't work in your environment, ask IT to register an app in Azure AD. They need to: create a new app registration, add a redirect URI pointing to where this file is hosted, and grant delegated permission for <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.72rem">Sites.ReadWrite.All</code> and <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.72rem">User.Read</code>. They then give you the Application (Client) ID.</div>
-          <div style="margin-top:.5rem;font-size:.75rem;color:var(--muted)">Once you have the Client ID, replace <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.7rem">YOUR_CLIENT_ID_HERE</code> at the top of the script section and re-upload the file.</div>
+          <div class="step-title">Dashboard reads live from Excel — no sign-in needed</div>
+          <div class="step-desc">This page fetches data directly from the shared Excel workbook using the public read-only sharing link. No Microsoft account required to view the dashboard. Anyone with this GitHub Pages URL sees live data automatically.</div>
+          <div class="code-block">Dashboard URL: https://gwc25.github.io/Digital-Lead-Activity-Hub/</div>
+          <div class="code-block">Excel file: Digital Leads Activity Log.xlsx (OneDrive)</div>
         </div>
       </div>
 
       <div class="setup-step">
-        <div class="step-num" style="background:var(--muted)">3</div>
+        <div class="step-num" style="background:var(--navy)">3</div>
         <div class="step-body">
-          <div class="step-title">Tier 3 — Offline / localStorage fallback</div>
-          <div class="step-desc">If neither Tier 1 nor Tier 2 is available, the tool saves entries to this browser's localStorage. Digital Leads see their own entries locally. A mailto link lets them email entries to you directly. Data saved locally is not shared with other Digital Leads.</div>
+          <div class="step-title">If the sharing link changes</div>
+          <div class="step-desc">If you ever regenerate the sharing link on the Excel file, open this HTML file, find the line near the top of the script that starts <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.72rem">const SHARING_URL</code> and replace the URL. Save and push to GitHub Pages.</div>
+          <a href="https://weston-my.sharepoint.com/:x:/r/personal/graeme_wright_weston_ac_uk/_layouts/15/Doc.aspx?sourcedoc=%7BE5CC2ADD-F852-4972-BB02-A4C02151A959%7D&file=Digital%20Leads%20Activity%20Log.xlsx&action=edit" target="_blank" class="btn-primary" style="margin-top:.6rem;display:inline-flex;text-decoration:none">Open Excel workbook →</a>
         </div>
       </div>
 
       <hr>
       <div style="font-size:.72rem;color:var(--muted);line-height:1.6">
-        <strong style="color:var(--navy)">Data &amp; privacy.</strong> All synced data is stored in the Weston College Microsoft 365 tenant (WC_STU_24DigitalChampions SharePoint site). Individual staff names are recorded as submitted. No learner personal data is collected. Processed under legitimate interests (quality assurance and professional development). UK GDPR compliant. Data controller: Weston College Group.
+        <strong style="color:var(--navy)">Data &amp; privacy.</strong> All data is stored in the Weston College Microsoft 365 tenant (Graeme Wright's OneDrive — Digital Leads Activity Log.xlsx). Individual staff names are recorded as submitted. No learner personal data is collected. Processed under legitimate interests (quality assurance and professional development). UK GDPR compliant. Data controller: Weston College Group.
       </div>
     </div>
 
@@ -480,28 +477,23 @@ hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
 </div><!-- /main -->
 
 
-<script>
-// ── CONFIG ──────────────────────────────────────────────────────
-// Update EXCEL_FILENAME to match the exact name of your Forms Excel file in OneDrive.
-// Update EXCEL_OPEN_URL after you've saved and shared the file (optional but useful).
-const EXCEL_FILENAME = 'Digital Leads Activity Log.xlsx';
-const TABLE_NAME     = 'RawData';      // Excel Table name — see Setup tab if not working
-const SHEET_NAME     = 'Raw Data';     // Sheet name fallback if no named table exists
-const EXCEL_OPEN_URL = 'https://weston-my.sharepoint.com/:x:/r/personal/graeme_wright_weston_ac_uk/_layouts/15/Doc.aspx?sourcedoc=%7BE5CC2ADD-F852-4972-BB02-A4C02151A959%7D&file=Digital%20Leads%20Activity%20Log.xlsx&action=edit';
-// Auto-show open button if URL is configured
-if (EXCEL_OPEN_URL) { window.addEventListener('load', () => updateOpenBtn(EXCEL_OPEN_URL)); }
-const CLIENT_ID      = 'YOUR_CLIENT_ID_HERE'; // Optional — see Setup tab
-const READ_SCOPES    = ['Files.Read', 'User.Read'];
 
-// Auth mode
-// 'excel-silent' = Graph API using existing browser M365 session (no app reg needed, read-only)
-// 'msal'         = Graph API via MSAL login (needs CLIENT_ID from IT, read-only)
-// 'local'        = offline/localStorage only
-let AUTH_MODE = 'local';
-let msalInstance = null;
-let msalAccount  = null;
-let excelFileId  = null;     // cached once found
-let allEntries   = [];
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+// Public read-only sharing link to the Excel workbook.
+// Anyone with this link can VIEW (not edit) the file.
+// The dashboard fetches the Raw Data sheet as CSV — no sign-in required.
+
+const SHARING_URL = 'https://weston-my.sharepoint.com/:x:/g/personal/graeme_wright_weston_ac_uk/IQDdKszlUvhySbsCpMAhUalZAXcElAmJyb290mhZXQgOdFQ?e=toJzlB';
+const EXCEL_EDIT_URL = 'https://weston-my.sharepoint.com/:x:/r/personal/graeme_wright_weston_ac_uk/_layouts/15/Doc.aspx?sourcedoc=%7BE5CC2ADD-F852-4972-BB02-A4C02151A959%7D&file=Digital%20Leads%20Activity%20Log.xlsx&action=edit';
+
+// Column positions in Raw Data sheet (0-based):
+// Id(0), Start time(1), Timestamp(2), Email(3), DLName(4), Area(5),
+// StaffCount(6), Focus(7), OtherDetail(8), Confidence(9), HealthCheck(10), Notes(11)
+const COL = { id:0, startTime:1, timestamp:2, email:3, name:4, area:5,
+              staff:6, focus:7, other:8, confidence:9, healthCheck:10, notes:11 };
+
+let allEntries = [];
 let confidenceSelected = 0;
 let chartFocus, chartConf, chartTime, chartArea, chartDL;
 
@@ -511,380 +503,270 @@ window.addEventListener('load', async () => {
   loadLocalEntries();
   renderRecentLocal();
   buildDashboard();
-  setConnectionUI('checking', 'Checking connection…');
-  await detectBestAuthMode();
+  setStatus('loading', 'Fetching live data…');
+  await fetchCSVData();
+  // Set up the Open in Excel button
+  const ob = document.getElementById('excel-open-btn');
+  if (ob) { ob.href = EXCEL_EDIT_URL; ob.style.display = 'inline-flex'; }
+  const rb = document.getElementById('btn-refresh-hdr');
+  if (rb) rb.style.display = 'inline-block';
 });
 
 function setDefaultDate() {
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 }
 
-// ── THREE-TIER AUTH DETECTION ──────────────────────────────────
-// Tier 1: Try Graph API with implicit browser session (read-only, no app reg)
-// Tier 2: Try MSAL with Client ID (read-only, needs one IT conversation)
-// Tier 3: Offline localStorage
+// ── CSV FETCH — NO AUTH REQUIRED ─────────────────────────────
+// OneDrive public sharing links support a CSV download endpoint.
+// We construct it from the sharing URL using Microsoft's download=1 pattern.
+// This works because the file is shared as "Anyone with the link can view".
 
-async function detectBestAuthMode() {
+function buildCSVUrl() {
+  // Pattern: replace /:x:/g/ with /:x:/r/ and add &download=1
+  // This tells OneDrive to serve the file directly
+  const base = SHARING_URL.replace('/:x:/g/', '/:x:/r/');
+  return base + '&download=1';
+}
 
-  // ── TIER 1: Silent Graph read using existing M365 browser session ──
-  // This works in many tenants when the user is already signed into M365.
-  // It only needs Files.Read — a much smaller permission than write access.
+async function fetchCSVData() {
   try {
-    const probe = await fetch(
-      'https://graph.microsoft.com/v1.0/me/drive/root',
-      { credentials: 'include' }
-    );
-    if (probe.ok) {
-      const me = await fetch('https://graph.microsoft.com/v1.0/me', { credentials: 'include' });
-      const meData = me.ok ? await me.json() : {};
-      AUTH_MODE = 'excel-silent';
-      const name = meData.displayName || meData.userPrincipalName || 'Microsoft 365 user';
-      setConnectionUI('excel-silent', `Connected — ${name}`);
-      document.getElementById('f-name').value = name;
-      document.getElementById('btn-sign').style.display = 'none';
-      document.getElementById('fallback-banner').classList.add('hidden');
-      await loadExcelEntries(null); // null = use credentials:'include' implicit session
+    // Method 1: Direct download of the xlsx, then extract Raw Data sheet as CSV
+    // OneDrive's public share with download=1 returns the xlsx binary.
+    // We can't parse xlsx client-side easily without a library.
+    // Better method: use OneDrive's embed/export endpoint for CSV
+
+    // Microsoft's CSV export URL for a specific sheet from a shared file:
+    // Construct the embed URL then redirect to CSV export
+    const csvUrl = buildCSVUrl();
+
+    // Try fetching — OneDrive may redirect but fetch follows redirects
+    const response = await fetch(csvUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/octet-stream, text/csv, */*' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+
+    // If we got CSV directly, parse it
+    if (contentType.includes('text/csv') || contentType.includes('text/plain')) {
+      const text = await response.text();
+      parseCSV(text);
       return;
     }
-  } catch(e) { /* silent session not available, try MSAL */ }
 
-  // ── TIER 2: MSAL with Client ID ──
-  if (CLIENT_ID !== 'YOUR_CLIENT_ID_HERE') {
-    try {
-      msalInstance = new msal.PublicClientApplication({
-        auth: {
-          clientId: CLIENT_ID,
-          authority: 'https://login.microsoftonline.com/common',
-          redirectUri: window.location.href.split('?')[0],
-        },
-        cache: { cacheLocation: 'sessionStorage' }
-      });
-      await msalInstance.initialize();
-      const redirect = await msalInstance.handleRedirectPromise();
-      if (redirect) msalAccount = redirect.account;
-      else {
-        const accounts = msalInstance.getAllAccounts();
-        if (accounts.length > 0) msalAccount = accounts[0];
-      }
-      if (msalAccount) {
-        AUTH_MODE = 'msal';
-        const name = msalAccount.name || msalAccount.username;
-        setConnectionUI('msal', `Connected via Microsoft account — ${name}`);
-        document.getElementById('f-name').value = name;
-        document.getElementById('btn-sign').style.display = 'none';
-        document.getElementById('fallback-banner').classList.add('hidden');
-        const token = await getMsalToken();
-        await loadExcelEntries(token);
-        return;
-      } else {
-        setConnectionUI('needs-signin', 'Microsoft account configured — sign in to load data');
-        showBanner('info', 'Sign in with your Weston College Microsoft account to read data from the Excel workbook.');
-        return;
-      }
-    } catch(e) { console.warn('MSAL init failed:', e); }
+    // If we got the xlsx binary, parse with SheetJS
+    const buffer = await response.arrayBuffer();
+    parseXLSX(buffer);
+
+  } catch(e) {
+    console.warn('Fetch attempt 1 failed:', e.message);
+    // Try alternate CSV export URL format
+    await tryAlternateCSV();
   }
-
-  // ── TIER 3: Offline ──
-  AUTH_MODE = 'local';
-  setConnectionUI('offline', 'Offline mode — showing locally saved data only');
-  showBanner('warn',
-    'Not connected to Microsoft 365. The dashboard is showing any locally saved data only. ' +
-    'To connect to the live Excel data, either open this file while signed into Microsoft 365 in your browser, ' +
-    'or add a Client ID — see the Setup tab.'
-  );
 }
 
-// ── CONNECTION STATUS UI ──────────────────────────────────────
-function setConnectionUI(mode, label) {
+async function tryAlternateCSV() {
+  try {
+    // Microsoft Forms Excel files support a specific CSV export endpoint
+    // by manipulating the sharing URL into an embed URL with CSV format
+    const fileId = 'IQDdKszlUvhySbsCpMAhUalZAXcElAmJyb290mhZXQgOdFQ';
+    const tenant = 'weston-my.sharepoint.com';
+
+    // Try the SharePoint REST download endpoint for the shared file
+    const altUrl = `https://${tenant}/:x:/g/personal/graeme_wright_weston_ac_uk/${fileId}?e=toJzlB&download=1&wdExportTo=csv&wdSheet=Raw+Data`;
+
+    const r = await fetch(altUrl);
+    if (r.ok) {
+      const text = await r.text();
+      if (text.includes(',') && text.length > 10) {
+        parseCSV(text);
+        return;
+      }
+      // Got xlsx binary instead
+      const buffer = await (await fetch(altUrl)).arrayBuffer();
+      parseXLSX(buffer);
+    } else {
+      throw new Error(`Alt fetch HTTP ${r.status}`);
+    }
+  } catch(e) {
+    console.warn('Fetch attempt 2 failed:', e.message);
+    tryXLSXParse();
+  }
+}
+
+async function tryXLSXParse() {
+  // Load SheetJS from CDN to parse the xlsx directly
+  if (typeof XLSX === 'undefined') {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  }
+  try {
+    const url = buildCSVUrl();
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const buffer = await r.arrayBuffer();
+    parseXLSX(buffer);
+  } catch(e) {
+    console.warn('XLSX parse failed:', e.message);
+    setStatus('error', 'Could not load live data — check the sharing link in Setup tab');
+    showFallbackBanner();
+  }
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+function parseXLSX(buffer) {
+  try {
+    if (typeof XLSX === 'undefined') { showFallbackBanner(); return; }
+    const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const ws = wb.Sheets['Raw Data'];
+    if (!ws) { setStatus('error', 'Raw Data sheet not found'); return; }
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    // rows[0] = headers, rows[1+] = data
+    if (rows.length < 2) { setStatus('ok', 'Connected — no data yet'); return; }
+    const headers = rows[0].map(h => String(h).toLowerCase().replace(/\s+/g,''));
+    // Build colMap from actual headers
+    const colMap = {};
+    headers.forEach((h, i) => { colMap[h] = i; });
+
+    function gc(row, key, fallback) {
+      const idx = colMap[key] !== undefined ? colMap[key] : fallback;
+      return row[idx] !== undefined ? row[idx] : '';
+    }
+
+    allEntries = rows.slice(1).map((row, i) => ({
+      id: i,
+      timestamp: gc(row, 'timestamp', COL.timestamp) || gc(row, 'starttime', COL.startTime),
+      name:        String(gc(row, 'dlname', COL.name)),
+      email:       String(gc(row, 'email', COL.email)),
+      area:        String(gc(row, 'area', COL.area)),
+      staff:       parseInt(gc(row, 'staffcount', COL.staff)) || 0,
+      focus:       String(gc(row, 'focus', COL.focus)),
+      other:       String(gc(row, 'otherdetail', COL.other)),
+      confidence:  String(gc(row, 'confidence', COL.confidence)),
+      healthCheck: String(gc(row, 'healthcheck', COL.healthCheck)).toLowerCase() === 'yes',
+      notes:       String(gc(row, 'notes', COL.notes)),
+      date:        '',
+    })).filter(e => e.name && e.name.trim() && e.name !== 'undefined');
+
+    // Derive dates
+    allEntries.forEach(e => {
+      try {
+        if (e.timestamp) {
+          const d = e.timestamp instanceof Date ? e.timestamp : new Date(e.timestamp);
+          if (!isNaN(d)) e.date = d.toISOString().split('T')[0];
+        }
+      } catch {}
+    });
+
+    allEntries.sort((a, b) => (b.timestamp > a.timestamp ? 1 : -1));
+    finaliseData();
+  } catch(e) {
+    console.error('XLSX parse error:', e);
+    setStatus('error', 'Parse error — ' + e.message);
+  }
+}
+
+function parseCSV(text) {
+  try {
+    const rows = text.trim().split('\n').map(r => parseCSVRow(r));
+    if (rows.length < 2) { setStatus('ok', 'Connected — no data yet'); return; }
+    const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g,''));
+    const colMap = {};
+    headers.forEach((h, i) => { colMap[h] = i; });
+
+    function gc(row, key, fallback) {
+      const idx = colMap[key] !== undefined ? colMap[key] : fallback;
+      return row[idx] || '';
+    }
+
+    allEntries = rows.slice(1).map((row, i) => ({
+      id: i,
+      timestamp: gc(row, 'timestamp', COL.timestamp),
+      name:       gc(row, 'dlname',      COL.name),
+      email:      gc(row, 'email',       COL.email),
+      area:       gc(row, 'area',        COL.area),
+      staff:      parseInt(gc(row, 'staffcount', COL.staff)) || 0,
+      focus:      gc(row, 'focus',       COL.focus),
+      other:      gc(row, 'otherdetail', COL.other),
+      confidence: gc(row, 'confidence',  COL.confidence),
+      healthCheck: gc(row, 'healthcheck', COL.healthCheck).toLowerCase() === 'yes',
+      notes:      gc(row, 'notes',       COL.notes),
+      date: '',
+    })).filter(e => e.name && e.name.trim());
+
+    allEntries.forEach(e => {
+      try {
+        if (e.timestamp) {
+          const d = new Date(e.timestamp);
+          if (!isNaN(d)) e.date = d.toISOString().split('T')[0];
+        }
+      } catch {}
+    });
+
+    allEntries.sort((a, b) => (b.timestamp > a.timestamp ? 1 : -1));
+    finaliseData();
+  } catch(e) {
+    console.error('CSV parse error:', e);
+    setStatus('error', 'CSV parse error');
+  }
+}
+
+function parseCSVRow(row) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < row.length; i++) {
+    const c = row[i];
+    if (c === '"') { inQ = !inQ; continue; }
+    if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; continue; }
+    cur += c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function finaliseData() {
+  buildDashboard();
+  renderRecentLocal();
+  document.getElementById('tc-total').textContent = allEntries.length;
+  const t = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  setStatus('ok', `Live data · ${allEntries.length} entries · refreshed ${t}`);
+  document.getElementById('fallback-banner').classList.add('hidden');
+  const lr = document.getElementById('last-refresh');
+  if (lr) lr.innerHTML = `Last refreshed ${t} · <button onclick="refreshData()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--fm);font-size:.72rem;text-decoration:underline;padding:0">Refresh now</button>`;
+}
+
+// ── STATUS ────────────────────────────────────────────────────
+function setStatus(state, msg) {
   const dot  = document.getElementById('auth-dot');
   const name = document.getElementById('auth-name');
-  const colors = { 'excel-silent':'ok', msal:'ok', 'needs-signin':'err', offline:'err', checking:'' };
-  dot.className = 'auth-dot ' + (colors[mode] || '');
-  name.textContent = label;
-
-  const ind = document.getElementById('conn-indicator');
-  if (ind) {
-    const msgs = {
-      'excel-silent': { color:'var(--green)',  text:'✓ Connected via Microsoft 365 session — reading live Excel data (no IT setup needed)' },
-      msal:           { color:'var(--green)',  text:'✓ Connected via Microsoft account — reading live Excel data' },
-      'needs-signin': { color:'var(--amber)', text:'◎ Client ID configured — click Sign in above to connect' },
-      offline:        { color:'var(--orange)', text:'○ Offline — showing locally saved data only' },
-      checking:       { color:'var(--muted)',  text:'… Detecting connection…' },
-    };
-    const m = msgs[mode] || msgs.offline;
-    ind.textContent = m.text;
-    ind.style.color  = m.color;
-  }
+  dot.className = 'auth-dot' + (state === 'ok' ? ' ok' : state === 'error' ? ' err' : '');
+  name.textContent = msg;
 }
 
-function showBanner(type, msg) {
+function showFallbackBanner() {
   const b = document.getElementById('fallback-banner');
-  b.style.background = type === 'info' ? '#dbeafe' : '#fef3c7';
-  b.style.borderColor = type === 'info' ? '#93c5fd' : '#fcd34d';
-  b.style.color       = type === 'info' ? '#1e40af' : '#92400e';
-  b.innerHTML = `<span>${type === 'warn' ? '⚠' : 'ℹ'}</span><div>${msg}</div>`;
+  const m = document.getElementById('fallback-msg');
+  if (m) m.innerHTML = `Could not load live data from OneDrive. Check the sharing link is set to "Anyone with the link can view". <a href="${EXCEL_EDIT_URL}" target="_blank" style="color:var(--amber)">Open Excel file →</a>`;
   b.classList.remove('hidden');
 }
 
-// ── SIGN IN ───────────────────────────────────────────────────
-async function handleSignIn() {
-  if (AUTH_MODE === 'excel-silent' || AUTH_MODE === 'msal') return;
-  if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
-    alert('No Client ID configured. See the Setup tab, or simply open this file while already signed into Microsoft 365 in your browser.');
-    return;
-  }
-  if (!msalInstance) { await detectBestAuthMode(); return; }
-  try {
-    const resp = await msalInstance.loginPopup({ scopes: READ_SCOPES });
-    msalAccount = resp.account;
-    AUTH_MODE   = 'msal';
-    setConnectionUI('msal', `Connected — ${msalAccount.name || msalAccount.username}`);
-    document.getElementById('f-name').value = msalAccount.name || msalAccount.username;
-    document.getElementById('btn-sign').style.display = 'none';
-    document.getElementById('fallback-banner').classList.add('hidden');
-    const token = await getMsalToken();
-    await loadExcelEntries(token);
-  } catch(e) { console.warn('Sign in failed:', e); }
-}
-
-// ── MSAL TOKEN ────────────────────────────────────────────────
-async function getMsalToken() {
-  if (!msalInstance || !msalAccount) return null;
-  try {
-    const r = await msalInstance.acquireTokenSilent({ scopes: READ_SCOPES, account: msalAccount });
-    return r.accessToken;
-  } catch {
-    try {
-      const r = await msalInstance.acquireTokenPopup({ scopes: READ_SCOPES, account: msalAccount });
-      return r.accessToken;
-    } catch { return null; }
-  }
-}
-
-// ── EXCEL / GRAPH DATA LOADING ────────────────────────────────
-// token = null means use credentials:'include' (implicit M365 session)
-// token = string means use Bearer auth header (MSAL)
-
-function graphHeaders(token) {
-  const h = { Accept: 'application/json' };
-  if (token) h['Authorization'] = `Bearer ${token}`;
-  return h;
-}
-
-function fetchOpts(token) {
-  const opts = { headers: graphHeaders(token) };
-  if (!token) opts.credentials = 'include';
-  return opts;
-}
-
-function updateOpenBtn(url) {
-  if (!url) return;
-  const b = document.getElementById('excel-open-btn');
-  if (b && !b.href) { b.href = url; b.style.display = 'inline-flex'; }
-}
-
-async function findExcelFileId(token) {
-  if (excelFileId) return excelFileId;
-  // Try direct path first (fastest)
-  try {
-    const direct = await fetch(
-      `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(EXCEL_FILENAME)}`,
-      fetchOpts(token)
-    );
-    if (direct.ok) {
-      const d = await direct.json();
-      excelFileId = d.id;
-      updateOpenBtn(d.webUrl);
-      return excelFileId;
-    }
-  } catch(e) { /* try search */ }
-  // Fall back to listing root children
-  const r = await fetch(
-    `https://graph.microsoft.com/v1.0/me/drive/root/children?$filter=name eq '${encodeURIComponent(EXCEL_FILENAME)}'&$select=id,name,webUrl`,
-    fetchOpts(token)
-  );
-  if (!r.ok) return null;
-  const data = await r.json();
-  const file = data.value?.[0];
-  if (!file) {
-    // Try searching more broadly
-    const search = await fetch(
-      `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodeURIComponent(EXCEL_FILENAME)}')?$select=id,name,webUrl`,
-      fetchOpts(token)
-    );
-    if (!search.ok) return null;
-    const sd = await search.json();
-    const sf = sd.value?.find(f => f.name === EXCEL_FILENAME);
-    if (!sf) return null;
-    excelFileId = sf.id;
-    // Cache the open URL if we found a webUrl
-    if (sf.webUrl && !EXCEL_OPEN_URL) {
-      const openBtn = document.getElementById('excel-open-btn');
-      if (openBtn) { openBtn.href = sf.webUrl; openBtn.style.display = 'inline-flex'; }
-    }
-    return excelFileId;
-  }
-  excelFileId = file.id;
-  if (file.webUrl && !EXCEL_OPEN_URL) {
-    const openBtn = document.getElementById('excel-open-btn');
-    if (openBtn) { openBtn.href = file.webUrl; openBtn.style.display = 'inline-flex'; }
-  }
-  return excelFileId;
-}
-
-async function loadExcelEntries(token) {
-  try {
-    const fileId = await findExcelFileId(token);
-    if (!fileId) {
-      console.warn('Excel file not found. Make sure the filename matches exactly:', EXCEL_FILENAME);
-      showBanner('warn', `Could not find "${EXCEL_FILENAME}" in your OneDrive. Make sure the filename matches exactly and the file has been saved to OneDrive (not just downloaded).`);
-      return;
-    }
-
-    // Read the RawData table rows
-    let rows = [];
-    // Try named table first
-    const tableR = await fetch(
-      `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/tables/${TABLE_NAME}/rows`,
-      fetchOpts(token)
-    );
-
-    if (tableR.ok) {
-      const tableData = await tableR.json();
-      rows = tableData.value || [];
-    } else if (tableR.status === 404) {
-      // No named table — fall back to reading the sheet range directly
-      // The 'Raw Data' sheet starts at row 1 (headers) then data from row 2
-      const sheetR = await fetch(
-        `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets('Raw Data')/usedRange`,
-        fetchOpts(token)
-      );
-      if (sheetR.ok) {
-        const sheetData = await sheetR.json();
-        const allRows = sheetData.values || [];
-        if (allRows.length > 1) {
-          // Skip header row, wrap each data row in the {values:[[...]]} format
-          rows = allRows.slice(1).map(r => ({ values: [r] }));
-        }
-        // Note: we need to build colMap from headers since we're reading raw sheet
-        const headers = allRows[0] || [];
-        colMap = {};
-        headers.forEach((h, i) => {
-          if (h) colMap[String(h).toLowerCase().replace(/\s+/g,'')] = i;
-        });
-      } else {
-        console.warn('Sheet read also failed:', sheetR.status);
-        return;
-      }
-    } else {
-      console.warn('Excel read failed:', tableR.status);
-      return;
-    }
-
-    // The columns come back in the same order as the Excel table headers.
-    // Map them by index based on the column names you set in Step 1.
-    // Index order: Timestamp(0), DLName(1), Area(2), StaffCount(3),
-    //              Focus(4), OtherDetail(5), Confidence(6), HealthCheck(7), Notes(8)
-    // Note: Microsoft Forms also prepends its own ID column — if your first column
-    // is "ID" rather than "Timestamp", adjust the indices below by +1.
-
-    // Build column map from table headers if not already set by sheet fallback
-    if (typeof colMap === "undefined") colMap = null;
-    if (!colMap) {
-      try {
-        const hdrR = await fetch(
-          `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/tables/${TABLE_NAME}/columns`,
-          fetchOpts(token)
-        );
-        if (hdrR.ok) {
-          const hdrData = await hdrR.json();
-          colMap = {};
-          (hdrData.value || []).forEach((c, i) => {
-            if (c.name) colMap[c.name.toLowerCase().replace(/\s+/g,'')] = i;
-          });
-        }
-      } catch(e) { /* use positional fallback */ }
-    }
-
-    // Map columns by name (case-insensitive) then fall back to known positional indices.
-    // Your Raw Data sheet columns:
-    // Id(0), Start time(1), Timestamp(2), Email(3), DLName(4), Area(5),
-    // StaffCount(6), Focus(7), OtherDetail(8), Confidence(9), HealthCheck(10), Notes(11)
-    function getCol(row, idx, altKey) {
-      // If colMap was built, use it; otherwise use positional index
-      if (colMap && altKey) {
-        const k = Object.keys(colMap).find(ck => ck === altKey || ck.includes(altKey.slice(0,6)));
-        if (k !== undefined && colMap[k] !== undefined) return row[colMap[k]];
-      }
-      return row[idx];
-    }
-
-    allEntries = rows.map((rowObj, i) => {
-      const row = rowObj.values?.[0] || [];
-      return {
-        id:          i,
-        timestamp:   getCol(row, 2, 'timestamp') || getCol(row, 1, 'starttime') || '',
-        name:        getCol(row, 4, 'dlname')    || '',
-        email:       getCol(row, 3, 'email')     || '',
-        area:        getCol(row, 5, 'area')      || '',
-        staff:       parseInt(getCol(row, 6, 'staffcount')) || 0,
-        focus:       getCol(row, 7, 'focus')     || '',
-        other:       getCol(row, 8, 'otherdetail') || '',
-        confidence:  getCol(row, 9, 'confidence') || '',
-        healthCheck: String(getCol(row, 10, 'healthcheck')).toLowerCase() === 'yes',
-        notes:       getCol(row, 11, 'notes')    || '',
-        date:        '',
-      };
-    }).filter(e => e.name && e.name.toString().trim()); // filter out empty/header rows
-
-    // Derive date from timestamp
-    allEntries.forEach(e => {
-      if (e.timestamp) {
-        try {
-          // Excel serial date or ISO string
-          if (typeof e.timestamp === 'number') {
-            const d = new Date((e.timestamp - 25569) * 86400 * 1000);
-            e.date = d.toISOString().split('T')[0];
-          } else {
-            e.date = new Date(e.timestamp).toISOString().split('T')[0];
-          }
-        } catch { e.date = ''; }
-      }
-    });
-
-    // Sort newest first
-    allEntries.sort((a, b) => (b.timestamp > a.timestamp ? 1 : -1));
-
-    buildDashboard();
-    renderRecentLocal();
-    document.getElementById('tc-total').textContent = allEntries.length;
-    const lr = document.getElementById('last-refresh');
-    if(lr){ const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); lr.innerHTML = `Last refreshed ${t} · <button onclick="refreshData()" id="btn-refresh" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--fm);font-size:.72rem;text-decoration:underline;padding:0">Refresh now</button>`; }
-
-  } catch(e) {
-    console.warn('loadExcelEntries error:', e);
-  }
-}
-
-// ── REFRESH BUTTON ────────────────────────────────────────────
+// ── REFRESH ───────────────────────────────────────────────────
 async function refreshData() {
-  const btn = document.getElementById('btn-refresh');
-  if (btn) { btn.textContent = 'Refreshing…'; btn.disabled = true; }
-  if (AUTH_MODE === 'msal') {
-    const token = await getMsalToken();
-    await loadExcelEntries(token);
-  } else if (AUTH_MODE === 'excel-silent') {
-    await loadExcelEntries(null);
-  }
-  if (btn) { btn.textContent = 'Refresh data'; btn.disabled = false; }
+  setStatus('loading', 'Refreshing…');
+  await fetchCSVData();
 }
 
-// ── CREATE LIST (setup tab — now creates the Excel table structure) ──
-async function createList() {
-  const status = document.getElementById('list-status');
-  status.style.color = 'var(--muted)';
-  status.textContent = 'Nothing to create here — the Excel workbook and RawData table are created automatically by Microsoft Forms when you click "Open in Excel" in the Forms Responses tab. See Step 1 of the setup guide above.';
-}
+// Expose handleSignIn as no-op (button removed but referenced in old code)
+function handleSignIn() { refreshData(); }
 
 // ── LOCAL STORAGE ──────────────────────────────────────────
 const LS_KEY = 'dl-log-entries';

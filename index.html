@@ -431,7 +431,7 @@ hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
 
     <div class="setup-card">
       <div class="setup-title">How this dashboard works</div>
-      <div class="setup-sub">No sign-in required. No IT setup needed. The dashboard reads directly from the shared Excel workbook — anyone with the link to this page sees live data.</div>
+      <div class="setup-sub">No sign-in required. No IT setup needed. The dashboard fetches the shared Excel workbook via a CORS proxy (corsproxy.io), parses it in the browser with SheetJS, and builds the charts. Anyone with this page URL sees live data — no Microsoft account needed.</div>
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1.25rem">
         <div style="font-size:.65rem;font-family:var(--fm);color:var(--muted);margin-bottom:.3rem;letter-spacing:.05em;text-transform:uppercase">Connection status</div>
@@ -450,7 +450,7 @@ hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
         <div class="step-num" style="background:var(--blue)">2</div>
         <div class="step-body">
           <div class="step-title">Dashboard reads live from Excel — no sign-in needed</div>
-          <div class="step-desc">This page fetches data directly from the shared Excel workbook using the public read-only sharing link. No Microsoft account required to view the dashboard. Anyone with this GitHub Pages URL sees live data automatically.</div>
+          <div class="step-desc">This page fetches the shared Excel workbook via corsproxy.io (a free CORS proxy), parses it in the browser using SheetJS, and builds the charts from the Raw Data sheet. No Microsoft account required. No IT involvement. Works from any browser.</div>
           <div class="code-block">Dashboard URL: https://gwc25.github.io/Digital-Lead-Activity-Hub/</div>
           <div class="code-block">Excel file: Digital Leads Activity Log.xlsx (OneDrive)</div>
         </div>
@@ -521,100 +521,63 @@ function setDefaultDate() {
 // We construct it from the sharing URL using Microsoft's download=1 pattern.
 // This works because the file is shared as "Anyone with the link can view".
 
-function buildCSVUrl() {
-  // Pattern: replace /:x:/g/ with /:x:/r/ and add &download=1
-  // This tells OneDrive to serve the file directly
-  const base = SHARING_URL.replace('/:x:/g/', '/:x:/r/');
-  return base + '&download=1';
+// ── CORS PROXY + SHEETJS APPROACH ────────────────────────────
+// OneDrive blocks direct fetch from external domains (CORS policy).
+// We route through corsproxy.io which fetches server-side then returns
+// the file to us — no IT involvement, no credentials, no sign-in.
+// SheetJS parses the xlsx binary in the browser.
+
+const CORS_PROXY = 'https://corsproxy.io/?';
+
+function buildDownloadUrl() {
+  // Convert sharing link to direct download
+  return SHARING_URL.replace('/:x:/g/', '/:x:/r/') + '&download=1';
 }
 
 async function fetchCSVData() {
-  try {
-    // Method 1: Direct download of the xlsx, then extract Raw Data sheet as CSV
-    // OneDrive's public share with download=1 returns the xlsx binary.
-    // We can't parse xlsx client-side easily without a library.
-    // Better method: use OneDrive's embed/export endpoint for CSV
-
-    // Microsoft's CSV export URL for a specific sheet from a shared file:
-    // Construct the embed URL then redirect to CSV export
-    const csvUrl = buildCSVUrl();
-
-    // Try fetching — OneDrive may redirect but fetch follows redirects
-    const response = await fetch(csvUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'application/octet-stream, text/csv, */*' }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-
-    // If we got CSV directly, parse it
-    if (contentType.includes('text/csv') || contentType.includes('text/plain')) {
-      const text = await response.text();
-      parseCSV(text);
-      return;
-    }
-
-    // If we got the xlsx binary, parse with SheetJS
-    const buffer = await response.arrayBuffer();
-    parseXLSX(buffer);
-
-  } catch(e) {
-    console.warn('Fetch attempt 1 failed:', e.message);
-    // Try alternate CSV export URL format
-    await tryAlternateCSV();
-  }
-}
-
-async function tryAlternateCSV() {
-  try {
-    // Microsoft Forms Excel files support a specific CSV export endpoint
-    // by manipulating the sharing URL into an embed URL with CSV format
-    const fileId = 'IQDdKszlUvhySbsCpMAhUalZAXcElAmJyb290mhZXQgOdFQ';
-    const tenant = 'weston-my.sharepoint.com';
-
-    // Try the SharePoint REST download endpoint for the shared file
-    const altUrl = `https://${tenant}/:x:/g/personal/graeme_wright_weston_ac_uk/${fileId}?e=toJzlB&download=1&wdExportTo=csv&wdSheet=Raw+Data`;
-
-    const r = await fetch(altUrl);
-    if (r.ok) {
-      const text = await r.text();
-      if (text.includes(',') && text.length > 10) {
-        parseCSV(text);
-        return;
-      }
-      // Got xlsx binary instead
-      const buffer = await (await fetch(altUrl)).arrayBuffer();
-      parseXLSX(buffer);
-    } else {
-      throw new Error(`Alt fetch HTTP ${r.status}`);
-    }
-  } catch(e) {
-    console.warn('Fetch attempt 2 failed:', e.message);
-    tryXLSXParse();
-  }
-}
-
-async function tryXLSXParse() {
-  // Load SheetJS from CDN to parse the xlsx directly
+  // Load SheetJS first if not already loaded
   if (typeof XLSX === 'undefined') {
+    setStatus('loading', 'Loading parser…');
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
   }
+
+  setStatus('loading', 'Fetching data from OneDrive…');
+
+  const targetUrl = buildDownloadUrl();
+  const proxyUrl  = CORS_PROXY + encodeURIComponent(targetUrl);
+
   try {
-    const url = buildCSVUrl();
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const r = await fetch(proxyUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status} from proxy`);
     const buffer = await r.arrayBuffer();
+    if (buffer.byteLength < 100) throw new Error('Empty response');
     parseXLSX(buffer);
   } catch(e) {
-    console.warn('XLSX parse failed:', e.message);
+    console.warn('Proxy fetch failed:', e.message);
+    // Try second proxy as fallback
+    await tryFallbackProxy(targetUrl);
+  }
+}
+
+async function tryFallbackProxy(targetUrl) {
+  // allorigins.win is a second reliable CORS proxy
+  const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+  try {
+    const r = await fetch(fallbackUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status} from fallback proxy`);
+    const buffer = await r.arrayBuffer();
+    if (buffer.byteLength < 100) throw new Error('Empty response');
+    parseXLSX(buffer);
+  } catch(e) {
+    console.warn('Fallback proxy failed:', e.message);
     setStatus('error', 'Could not load live data — check the sharing link in Setup tab');
     showFallbackBanner();
   }
 }
+
+// Kept for compatibility but no longer used as primary
+async function tryAlternateCSV() { await fetchCSVData(); }
+async function tryXLSXParse()    { await fetchCSVData(); }
 
 function loadScript(src) {
   return new Promise((res, rej) => {

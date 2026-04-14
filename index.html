@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Leads · Activity Hub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Fraunces:wght@300;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f2d4a;--blue:#1d4e89;--mid:#2e75b6;--sky:#deeaf1;
+  --bg:#f5f4f0;--surface:#fff;--border:#e0ddd5;--text:#1a1916;--muted:#6b6860;
+  --teal:#0f766e;--amber:#b45309;--orange:#c2410c;--green:#15803d;
+  --r1:#15803d;--r1l:#dcfce7;--r1b:#86efac;
+  --r2:#2563eb;--r2l:#dbeafe;--r2b:#93c5fd;
+  --r3:#b45309;--r3l:#fef3c7;--r3b:#fcd34d;
+  --r4:#ea580c;--r4l:#ffedd5;--r4b:#fdba74;
+  --r5:#dc2626;--r5l:#fee2e2;--r5b:#fca5a5;
+  --fd:'Fraunces',Georgia,serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+  --r:8px;--rl:12px;--sh:0 1px 3px rgba(0,0,0,.08);--shm:0 6px 24px rgba(0,0,0,.12);
+}
+html,body{height:100%;font-family:var(--fb);background:var(--bg);color:var(--text);font-size:15px}
+body{display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+.hdr{
+  background:var(--navy);color:#fff;padding:0 1.75rem;height:52px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+.hdr-left{display:flex;align-items:center;gap:.75rem}
+.hdr-icon{width:32px;height:32px;background:var(--mid);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.hdr-title{font-family:var(--fd);font-size:1rem;font-weight:600}
+.hdr-sub{font-size:.65rem;opacity:.55;font-family:var(--fm)}
+.hdr-right{display:flex;align-items:center;gap:.75rem}
+.auth-status{font-size:.65rem;font-family:var(--fm);display:flex;align-items:center;gap:.4rem}
+.auth-dot{width:7px;height:7px;border-radius:50%;background:#6b7280}
+.auth-dot.ok{background:#4ade80}
+.auth-dot.err{background:#f87171}
+.auth-name{opacity:.7}
+.btn-sign{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:var(--r);padding:4px 12px;font-size:.72rem;cursor:pointer;font-family:var(--fb);transition:background .12s}
+.btn-sign:hover{background:rgba(255,255,255,.22)}
+
+/* ── TABS ── */
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0;padding:0 1.75rem;flex-shrink:0}
+.tab{padding:.7rem 1.1rem;font-size:.8rem;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:color .12s,border-color .12s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--fb)}
+.tab:hover{color:var(--navy)}
+.tab.active{color:var(--navy);border-bottom-color:var(--mid)}
+.tab-count{font-family:var(--fm);font-size:.62rem;background:var(--sky);color:var(--blue);padding:1px 6px;border-radius:99px;margin-left:.3rem}
+
+/* ── MAIN ── */
+.main{flex:1;overflow:hidden;display:flex}
+.view{flex:1;overflow-y:auto;padding:1.75rem;display:none}
+.view.active{display:block}
+.view::-webkit-scrollbar{width:5px}
+.view::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.inner{max-width:900px}
+
+/* ── FALLBACK BANNER ── */
+.fallback-banner{
+  background:#fef3c7;border:1px solid #fcd34d;border-radius:var(--rl);
+  padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:.6rem;
+  font-size:.78rem;line-height:1.5;color:#92400e;
+}
+.fallback-banner.hidden{display:none}
+.fallback-banner strong{font-weight:600}
+
+/* ── FORM ── */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;box-shadow:var(--sh)}
+.form-title{font-family:var(--fd);font-size:1.3rem;color:var(--navy);margin-bottom:.25rem;font-weight:600}
+.form-sub{font-size:.78rem;color:var(--muted);margin-bottom:1.5rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:.3rem}
+.form-group.full{grid-column:1/-1}
+label{font-size:.72rem;font-weight:500;color:var(--navy);letter-spacing:.02em}
+label .req{color:var(--orange)}
+input,select,textarea{
+  padding:.55rem .7rem;border:1px solid var(--border);border-radius:var(--r);
+  font-family:var(--fb);font-size:.82rem;color:var(--text);background:var(--bg);
+  transition:border-color .12s,box-shadow .12s;outline:none;width:100%;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--mid);box-shadow:0 0 0 3px rgba(46,117,182,.12);background:#fff}
+input[readonly]{background:var(--sky);color:var(--blue);cursor:default;border-color:var(--border)}
+textarea{resize:vertical;min-height:68px;line-height:1.5}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6860' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .7rem center;padding-right:2rem}
+
+.confidence-row{display:flex;gap:.5rem;margin-top:.2rem}
+.conf-btn{
+  flex:1;padding:.5rem .3rem;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--bg);cursor:pointer;font-size:.75rem;font-family:var(--fb);
+  text-align:center;color:var(--muted);transition:all .12s;line-height:1.3;
+}
+.conf-btn:hover{border-color:var(--mid);background:var(--sky)}
+.conf-btn.selected{border-color:var(--mid);background:var(--sky);color:var(--blue);font-weight:500}
+.conf-btn.sel-1{border-color:var(--r4);background:var(--r4l);color:var(--r4)}
+.conf-btn.sel-2{border-color:var(--r3);background:var(--r3l);color:var(--r3)}
+.conf-btn.sel-3{border-color:var(--r1);background:var(--r1l);color:var(--r1)}
+
+.toggle-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#d1d5db;border-radius:99px;cursor:pointer;transition:background .15s}
+.toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .15s}
+.toggle input:checked + .toggle-slider{background:var(--teal)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(18px)}
+.toggle-label{font-size:.8rem;color:var(--text)}
+
+.other-field{display:none;margin-top:.5rem}
+.other-field.show{display:block}
+
+.form-actions{display:flex;align-items:center;gap:.75rem;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)}
+.btn-submit{
+  background:var(--navy);color:#fff;border:none;border-radius:var(--r);
+  padding:.6rem 1.5rem;font-size:.82rem;font-weight:500;cursor:pointer;
+  font-family:var(--fb);transition:background .12s;display:flex;align-items:center;gap:.4rem;
+}
+.btn-submit:hover{background:var(--blue)}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed}
+.btn-clear{background:none;border:1px solid var(--border);border-radius:var(--r);padding:.6rem 1rem;font-size:.78rem;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .12s}
+.btn-clear:hover{border-color:var(--orange);color:var(--orange)}
+.submit-status{font-size:.75rem;font-family:var(--fm)}
+.submit-status.ok{color:var(--green)}
+.submit-status.err{color:var(--orange)}
+
+/* ── RECENT LOG (form page) ── */
+.recent-section{margin-top:1.5rem}
+.recent-title{font-size:.72rem;font-family:var(--fm);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem}
+.log-item{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);
+  padding:.75rem 1rem;margin-bottom:.5rem;display:flex;align-items:flex-start;gap:.75rem;
+  border-left:3px solid var(--mid);
+}
+.log-date{font-family:var(--fm);font-size:.65rem;color:var(--mid);white-space:nowrap;margin-top:.15rem}
+.log-body{flex:1;min-width:0}
+.log-focus{font-size:.8rem;font-weight:500;color:var(--navy)}
+.log-meta{font-size:.72rem;color:var(--muted);margin-top:.15rem}
+.log-note{font-size:.74rem;color:var(--muted);margin-top:.2rem;font-style:italic}
+.log-empty{font-size:.8rem;color:var(--muted);padding:.75rem 0;text-align:center}
+
+/* ── DASHBOARD STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin-bottom:1.25rem}
+@media(max-width:640px){.stats-row{grid-template-columns:1fr 1fr}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:.85rem 1rem;text-align:center}
+.stat-n{font-family:var(--fd);font-size:1.7rem;font-weight:600;color:var(--navy);line-height:1}
+.stat-l{font-size:.67rem;color:var(--muted);margin-top:.2rem}
+
+/* ── CHART GRID ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:1.25rem}
+@media(max-width:640px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1rem}
+.chart-card.wide{grid-column:1/-1}
+.chart-title{font-size:.72rem;font-family:var(--fm);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem}
+.chart-wrap{position:relative;height:180px}
+.chart-wrap.tall{height:240px}
+
+/* ── DATA TABLE ── */
+.table-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
+.table-hdr{padding:.85rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+.table-title{font-size:.78rem;font-weight:600;color:var(--navy)}
+.table-filters{display:flex;gap:.5rem;flex-wrap:wrap}
+.filter-select{padding:.3rem .6rem;border:1px solid var(--border);border-radius:var(--r);font-size:.72rem;background:var(--bg);font-family:var(--fb);color:var(--text);cursor:pointer}
+.btn-export{background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:.3rem .75rem;font-size:.72rem;cursor:pointer;font-family:var(--fb);transition:background .12s}
+.btn-export:hover{background:var(--blue)}
+.dt{width:100%;border-collapse:collapse;font-size:.74rem}
+.dt thead th{background:var(--bg);padding:.5rem .75rem;text-align:left;font-size:.63rem;font-family:var(--fm);font-weight:500;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+.dt tbody tr{border-bottom:1px solid var(--border)}
+.dt tbody tr:last-child{border-bottom:none}
+.dt tbody tr:hover{background:#fafaf8}
+.dt td{padding:.5rem .75rem;line-height:1.4;vertical-align:middle}
+.dt td:first-child{font-family:var(--fm);font-size:.65rem;color:var(--mid)}
+.tag{display:inline-block;font-size:.62rem;font-family:var(--fm);padding:1px 7px;border-radius:99px;font-weight:500}
+.tag-blue{background:var(--sky);color:var(--blue)}
+.tag-teal{background:#ccfbf1;color:var(--teal)}
+.tag-amber{background:#fef3c7;color:var(--amber)}
+.tag-orange{background:#ffedd5;color:var(--orange)}
+.tag-green{background:var(--r1l);color:var(--r1)}
+.tag-red{background:var(--r5l);color:var(--r5)}
+.tag-gray{background:#f3f4f6;color:#6b7280}
+.dt-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.8rem}
+
+/* ── SETUP PAGE ── */
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;max-width:560px}
+.setup-title{font-family:var(--fd);font-size:1.2rem;color:var(--navy);margin-bottom:.4rem;font-weight:600}
+.setup-sub{font-size:.8rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6}
+.setup-step{display:flex;gap:.75rem;margin-bottom:1rem;align-items:flex-start}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:600;flex-shrink:0;margin-top:.1rem}
+.step-body{flex:1}
+.step-title{font-size:.8rem;font-weight:600;color:var(--navy);margin-bottom:.2rem}
+.step-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
+.code-block{background:#1a1916;color:#e5e7eb;border-radius:var(--r);padding:.65rem .85rem;font-family:var(--fm);font-size:.72rem;margin:.5rem 0;overflow-x:auto;line-height:1.6;word-break:break-all}
+.btn-primary{background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:.55rem 1.25rem;font-size:.8rem;font-weight:500;cursor:pointer;font-family:var(--fb);transition:background .12s;display:inline-flex;align-items:center;gap:.4rem}
+.btn-primary:hover{background:var(--blue)}
+
+/* ── SPINNER ── */
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.spinner.show{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MISC ── */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="hdr" role="banner">
+  <div class="hdr-left">
+    <div class="hdr-icon">DL</div>
+    <div>
+      <div class="hdr-title">Digital Leads · Activity Hub</div>
+      <div class="hdr-sub">Weston College Group · Digital Pedagogy Programme</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="auth-status">
+      <div class="auth-dot" id="auth-dot"></div>
+      <span class="auth-name" id="auth-name">Not signed in</span>
+    </div>
+    <button class="btn-sign" id="btn-sign" onclick="handleSignIn()">Sign in</button>
+  </div>
+</header>
+
+<!-- ── TABS ── -->
+<div class="tabs" role="tablist">
+  <button class="tab active" role="tab" aria-selected="true" onclick="switchTab('log')">Log Activity</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('dash')">Dashboard <span class="tab-count" id="tc-total">—</span></button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('setup')">Setup &amp; Help</button>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- ══ LOG TAB ══ -->
+  <div class="view active" id="view-log" role="tabpanel">
+  <div class="inner">
+
+    <div class="fallback-banner" id="fallback-banner">
+      <span>⚠</span>
+      <div><strong>Running in offline mode.</strong> Sign in with your Weston College Microsoft account to save entries to the shared SharePoint list. Your entries are being saved locally to this browser only.</div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-title">Log your activity</div>
+      <div class="form-sub">Record each time you support a colleague or run a Health Check. Takes about 60 seconds.</div>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="f-name">Digital Lead name <span class="req">*</span></label>
+          <input type="text" id="f-name" readonly placeholder="Sign in to auto-populate">
+        </div>
+
+        <div class="form-group">
+          <label for="f-date">Date <span class="req">*</span></label>
+          <input type="date" id="f-date">
+        </div>
+
+        <div class="form-group">
+          <label for="f-area">Curriculum area <span class="req">*</span></label>
+          <select id="f-area">
+            <option value="">— Select area —</option>
+            <option>AGF — Arts, Graphics &amp; Fashion</option>
+            <option>AHE — Access to HE</option>
+            <option>ANM — Animal Management</option>
+            <option>BUI — Building Services (Construction)</option>
+            <option>BUS — Business &amp; Tourism</option>
+            <option>CED — Community Education</option>
+            <option>CON — Construction Trades</option>
+            <option>CTC — Construction Training Centre</option>
+            <option>DCI — Digital Computing &amp; IT</option>
+            <option>EEY — Education &amp; Early Years</option>
+            <option>EFE — Engineering WBL FE</option>
+            <option>EGL — English</option>
+            <option>EHE — Engineering Higher Education</option>
+            <option>EMV — Engineering &amp; Motor Vehicle</option>
+            <option>ENG — Engineering (General)</option>
+            <option>ESO — ESOL</option>
+            <option>EXT — External Contracts / Provision</option>
+            <option>FAU — FIP Autism</option>
+            <option>FCO — FIP Complex Needs</option>
+            <option>FEH — FIP Supported Employment Excellence</option>
+            <option>FPL — FIP Pre-Vocational</option>
+            <option>GMA — Games, Media &amp; Animation</option>
+            <option>HAC — Health (inc. Health T-Level)</option>
+            <option>HBH — Hair, Beauty &amp; Hospitality</option>
+            <option>MAT — Maths</option>
+            <option>PAP — Performance &amp; Production</option>
+            <option>PRA — Professional Apprenticeships</option>
+            <option>PRE — Employment Services (Pre-employment)</option>
+            <option>PRS — Professional Studies</option>
+            <option>PSF — Public Services</option>
+            <option>SKB — Skills Bootcamps</option>
+            <option>SMS — Sixth Form</option>
+            <option>SMX — SOMAX (Offsite / Prison)</option>
+            <option>SPO — Sport</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="f-staff">Number of staff supported <span class="req">*</span></label>
+          <input type="number" id="f-staff" min="0" max="50" value="1" placeholder="0">
+        </div>
+
+        <div class="form-group full">
+          <label for="f-focus">Focus area <span class="req">*</span></label>
+          <select id="f-focus" onchange="handleFocusChange()">
+            <option value="">— What did you focus on? —</option>
+            <option value="Teams environment">Teams environment &amp; digital learning spaces</option>
+            <option value="Accessibility">Accessibility &amp; inclusive resources</option>
+            <option value="AI in teaching">AI in teaching and learning</option>
+            <option value="Assessment tools">Assessment &amp; feedback tools</option>
+            <option value="Learner digital support">Learner digital skills support</option>
+            <option value="Data and evidence">Data &amp; evidence use</option>
+            <option value="Health Check">Digital Health Check</option>
+            <option value="Other">Other</option>
+          </select>
+          <div class="other-field" id="other-field">
+            <input type="text" id="f-other" placeholder="Briefly describe the focus area…" style="margin-top:.4rem">
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label>Colleague confidence by the end</label>
+          <div class="confidence-row">
+            <button type="button" class="conf-btn" id="c1" onclick="selectConf(1)">Not yet confident</button>
+            <button type="button" class="conf-btn" id="c2" onclick="selectConf(2)">Getting there</button>
+            <button type="button" class="conf-btn" id="c3" onclick="selectConf(3)">Confident</button>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <div class="toggle-row">
+            <label class="toggle" for="f-hc">
+              <input type="checkbox" id="f-hc">
+              <div class="toggle-slider"></div>
+            </label>
+            <span class="toggle-label">Digital Health Check completed this session</span>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label for="f-notes">Notes <span style="opacity:.6;font-weight:400">(optional — one sentence is plenty)</span></label>
+          <textarea id="f-notes" placeholder="What did you actually do? e.g. 'Walked through Accessibility Checker together and she audited her assignment brief.'"></textarea>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-submit" id="btn-submit" onclick="submitEntry()">
+          <div class="spinner" id="submit-spinner"></div>
+          Save entry
+        </button>
+        <button class="btn-clear" onclick="clearForm()">Clear form</button>
+        <span class="submit-status" id="submit-status"></span>
+      </div>
+    </div>
+
+    <div class="recent-section">
+      <div class="recent-title">Your recent entries</div>
+      <div id="recent-list"><div class="log-empty">No entries yet. Fill in your first one above.</div></div>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- ══ DASHBOARD TAB ══ -->
+  <div class="view" id="view-dash" role="tabpanel">
+  <div class="inner">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+      <div style="font-size:.72rem;color:var(--muted);font-family:var(--fm)" id="last-refresh">Data loaded on open · <button onclick="refreshData()" id="btn-refresh" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--fm);font-size:.72rem;text-decoration:underline;padding:0">Refresh now</button></div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <a id="excel-open-btn" href="" target="_blank" style="display:none;align-items:center;gap:.35rem;font-size:.72rem;background:var(--navy);color:#fff;padding:4px 12px;border-radius:var(--r);text-decoration:none;font-family:var(--fb)">Open in Excel</a>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-n" id="d-total">0</div><div class="stat-l">Total sessions</div></div>
+      <div class="stat"><div class="stat-n" id="d-reach">0</div><div class="stat-l">Staff reached</div></div>
+      <div class="stat"><div class="stat-n" id="d-areas">0</div><div class="stat-l">Areas active</div></div>
+      <div class="stat"><div class="stat-n" id="d-hc">0</div><div class="stat-l">Health Checks</div></div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Sessions by focus area</div>
+        <div class="chart-wrap"><canvas id="chart-focus"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Confidence outcomes</div>
+        <div class="chart-wrap"><canvas id="chart-conf"></canvas></div>
+      </div>
+      <div class="chart-card wide">
+        <div class="chart-title">Activity over time (sessions per week)</div>
+        <div class="chart-wrap tall"><canvas id="chart-time"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Sessions by curriculum area</div>
+        <div class="chart-wrap tall"><canvas id="chart-area"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Staff reached by Digital Lead</div>
+        <div class="chart-wrap tall"><canvas id="chart-dl"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-hdr">
+        <div class="table-title">All entries</div>
+        <div class="table-filters">
+          <select class="filter-select" id="f-filter-dl" onchange="renderTable()"><option value="">All Digital Leads</option></select>
+          <select class="filter-select" id="f-filter-area" onchange="renderTable()"><option value="">All areas</option></select>
+          <select class="filter-select" id="f-filter-focus" onchange="renderTable()"><option value="">All focus areas</option></select>
+          <button class="btn-export" onclick="exportReport()">Export report</button>
+        </div>
+      </div>
+      <div id="table-wrap">
+        <div class="dt-empty">No data yet. Start logging activity to see it here.</div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- ══ SETUP TAB ══ -->
+  <div class="view" id="view-setup" role="tabpanel">
+  <div class="inner">
+
+    <div class="setup-card">
+      <div class="setup-title">Setup &amp; connection guide</div>
+      <div class="setup-sub">This dashboard reads live data from the Microsoft Forms → Excel workbook. Digital Leads submit activity via the Microsoft Form. This HTML file shows the data as charts and tables.</div>
+
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1.25rem">
+        <div style="font-size:.65rem;font-family:var(--fm);color:var(--muted);margin-bottom:.3rem;letter-spacing:.05em;text-transform:uppercase">Current connection status</div>
+        <div id="conn-indicator" style="font-size:.8rem;font-weight:500">… Detecting…</div>
+      </div>
+
+      <div class="setup-step">
+        <div class="step-num" style="background:var(--teal)">1</div>
+        <div class="step-body">
+          <div class="step-title">Tier 1 — SharePoint session (no IT setup needed)</div>
+          <div class="step-desc">If this HTML file is hosted on your SharePoint site and opened while you're logged into Microsoft 365, it connects automatically using your existing session. No sign-in prompt, no app registration. <strong>This is the recommended starting point.</strong></div>
+          <div style="margin-top:.5rem;font-size:.75rem;color:var(--muted)">How to host it: upload the HTML file to the Digital Champions SharePoint site → Documents library → share the link as a Teams tab.</div>
+          <div class="code-block">Site: https://weston.sharepoint.com/sites/WC_STU_24DigitalChampions</div>
+          <button class="btn-primary" style="margin-top:.5rem" onclick="createList()">Create the SharePoint list (first time only)</button>
+          <div id="list-status" style="margin-top:.5rem;font-size:.75rem;font-family:var(--fm)"></div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="step-num" style="background:var(--blue)">2</div>
+        <div class="step-body">
+          <div class="step-title">Tier 2 — Microsoft Graph API (needs one IT conversation)</div>
+          <div class="step-desc">If Tier 1 doesn't work in your environment, ask IT to register an app in Azure AD. They need to: create a new app registration, add a redirect URI pointing to where this file is hosted, and grant delegated permission for <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.72rem">Sites.ReadWrite.All</code> and <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.72rem">User.Read</code>. They then give you the Application (Client) ID.</div>
+          <div style="margin-top:.5rem;font-size:.75rem;color:var(--muted)">Once you have the Client ID, replace <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.7rem">YOUR_CLIENT_ID_HERE</code> at the top of the script section and re-upload the file.</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="step-num" style="background:var(--muted)">3</div>
+        <div class="step-body">
+          <div class="step-title">Tier 3 — Offline / localStorage fallback</div>
+          <div class="step-desc">If neither Tier 1 nor Tier 2 is available, the tool saves entries to this browser's localStorage. Digital Leads see their own entries locally. A mailto link lets them email entries to you directly. Data saved locally is not shared with other Digital Leads.</div>
+        </div>
+      </div>
+
+      <hr>
+      <div style="font-size:.72rem;color:var(--muted);line-height:1.6">
+        <strong style="color:var(--navy)">Data &amp; privacy.</strong> All synced data is stored in the Weston College Microsoft 365 tenant (WC_STU_24DigitalChampions SharePoint site). Individual staff names are recorded as submitted. No learner personal data is collected. Processed under legitimate interests (quality assurance and professional development). UK GDPR compliant. Data controller: Weston College Group.
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+</div><!-- /main -->
+
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+// Update EXCEL_FILENAME to match the exact name of your Forms Excel file in OneDrive.
+// Update EXCEL_OPEN_URL after you've saved and shared the file (optional but useful).
+const EXCEL_FILENAME = 'Digital Leads Activity Log.xlsx';
+const TABLE_NAME     = 'RawData';      // Excel Table name — see Setup tab if not working
+const SHEET_NAME     = 'Raw Data';     // Sheet name fallback if no named table exists
+const EXCEL_OPEN_URL = 'https://weston-my.sharepoint.com/:x:/r/personal/graeme_wright_weston_ac_uk/_layouts/15/Doc.aspx?sourcedoc=%7BE5CC2ADD-F852-4972-BB02-A4C02151A959%7D&file=Digital%20Leads%20Activity%20Log.xlsx&action=edit';
+// Auto-show open button if URL is configured
+if (EXCEL_OPEN_URL) { window.addEventListener('load', () => updateOpenBtn(EXCEL_OPEN_URL)); }
+const CLIENT_ID      = 'YOUR_CLIENT_ID_HERE'; // Optional — see Setup tab
+const READ_SCOPES    = ['Files.Read', 'User.Read'];
+
+// Auth mode
+// 'excel-silent' = Graph API using existing browser M365 session (no app reg needed, read-only)
+// 'msal'         = Graph API via MSAL login (needs CLIENT_ID from IT, read-only)
+// 'local'        = offline/localStorage only
+let AUTH_MODE = 'local';
+let msalInstance = null;
+let msalAccount  = null;
+let excelFileId  = null;     // cached once found
+let allEntries   = [];
+let confidenceSelected = 0;
+let chartFocus, chartConf, chartTime, chartArea, chartDL;
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  setDefaultDate();
+  loadLocalEntries();
+  renderRecentLocal();
+  buildDashboard();
+  setConnectionUI('checking', 'Checking connection…');
+  await detectBestAuthMode();
+});
+
+function setDefaultDate() {
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+}
+
+// ── THREE-TIER AUTH DETECTION ──────────────────────────────────
+// Tier 1: Try Graph API with implicit browser session (read-only, no app reg)
+// Tier 2: Try MSAL with Client ID (read-only, needs one IT conversation)
+// Tier 3: Offline localStorage
+
+async function detectBestAuthMode() {
+
+  // ── TIER 1: Silent Graph read using existing M365 browser session ──
+  // This works in many tenants when the user is already signed into M365.
+  // It only needs Files.Read — a much smaller permission than write access.
+  try {
+    const probe = await fetch(
+      'https://graph.microsoft.com/v1.0/me/drive/root',
+      { credentials: 'include' }
+    );
+    if (probe.ok) {
+      const me = await fetch('https://graph.microsoft.com/v1.0/me', { credentials: 'include' });
+      const meData = me.ok ? await me.json() : {};
+      AUTH_MODE = 'excel-silent';
+      const name = meData.displayName || meData.userPrincipalName || 'Microsoft 365 user';
+      setConnectionUI('excel-silent', `Connected — ${name}`);
+      document.getElementById('f-name').value = name;
+      document.getElementById('btn-sign').style.display = 'none';
+      document.getElementById('fallback-banner').classList.add('hidden');
+      await loadExcelEntries(null); // null = use credentials:'include' implicit session
+      return;
+    }
+  } catch(e) { /* silent session not available, try MSAL */ }
+
+  // ── TIER 2: MSAL with Client ID ──
+  if (CLIENT_ID !== 'YOUR_CLIENT_ID_HERE') {
+    try {
+      msalInstance = new msal.PublicClientApplication({
+        auth: {
+          clientId: CLIENT_ID,
+          authority: 'https://login.microsoftonline.com/common',
+          redirectUri: window.location.href.split('?')[0],
+        },
+        cache: { cacheLocation: 'sessionStorage' }
+      });
+      await msalInstance.initialize();
+      const redirect = await msalInstance.handleRedirectPromise();
+      if (redirect) msalAccount = redirect.account;
+      else {
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) msalAccount = accounts[0];
+      }
+      if (msalAccount) {
+        AUTH_MODE = 'msal';
+        const name = msalAccount.name || msalAccount.username;
+        setConnectionUI('msal', `Connected via Microsoft account — ${name}`);
+        document.getElementById('f-name').value = name;
+        document.getElementById('btn-sign').style.display = 'none';
+        document.getElementById('fallback-banner').classList.add('hidden');
+        const token = await getMsalToken();
+        await loadExcelEntries(token);
+        return;
+      } else {
+        setConnectionUI('needs-signin', 'Microsoft account configured — sign in to load data');
+        showBanner('info', 'Sign in with your Weston College Microsoft account to read data from the Excel workbook.');
+        return;
+      }
+    } catch(e) { console.warn('MSAL init failed:', e); }
+  }
+
+  // ── TIER 3: Offline ──
+  AUTH_MODE = 'local';
+  setConnectionUI('offline', 'Offline mode — showing locally saved data only');
+  showBanner('warn',
+    'Not connected to Microsoft 365. The dashboard is showing any locally saved data only. ' +
+    'To connect to the live Excel data, either open this file while signed into Microsoft 365 in your browser, ' +
+    'or add a Client ID — see the Setup tab.'
+  );
+}
+
+// ── CONNECTION STATUS UI ──────────────────────────────────────
+function setConnectionUI(mode, label) {
+  const dot  = document.getElementById('auth-dot');
+  const name = document.getElementById('auth-name');
+  const colors = { 'excel-silent':'ok', msal:'ok', 'needs-signin':'err', offline:'err', checking:'' };
+  dot.className = 'auth-dot ' + (colors[mode] || '');
+  name.textContent = label;
+
+  const ind = document.getElementById('conn-indicator');
+  if (ind) {
+    const msgs = {
+      'excel-silent': { color:'var(--green)',  text:'✓ Connected via Microsoft 365 session — reading live Excel data (no IT setup needed)' },
+      msal:           { color:'var(--green)',  text:'✓ Connected via Microsoft account — reading live Excel data' },
+      'needs-signin': { color:'var(--amber)', text:'◎ Client ID configured — click Sign in above to connect' },
+      offline:        { color:'var(--orange)', text:'○ Offline — showing locally saved data only' },
+      checking:       { color:'var(--muted)',  text:'… Detecting connection…' },
+    };
+    const m = msgs[mode] || msgs.offline;
+    ind.textContent = m.text;
+    ind.style.color  = m.color;
+  }
+}
+
+function showBanner(type, msg) {
+  const b = document.getElementById('fallback-banner');
+  b.style.background = type === 'info' ? '#dbeafe' : '#fef3c7';
+  b.style.borderColor = type === 'info' ? '#93c5fd' : '#fcd34d';
+  b.style.color       = type === 'info' ? '#1e40af' : '#92400e';
+  b.innerHTML = `<span>${type === 'warn' ? '⚠' : 'ℹ'}</span><div>${msg}</div>`;
+  b.classList.remove('hidden');
+}
+
+// ── SIGN IN ───────────────────────────────────────────────────
+async function handleSignIn() {
+  if (AUTH_MODE === 'excel-silent' || AUTH_MODE === 'msal') return;
+  if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    alert('No Client ID configured. See the Setup tab, or simply open this file while already signed into Microsoft 365 in your browser.');
+    return;
+  }
+  if (!msalInstance) { await detectBestAuthMode(); return; }
+  try {
+    const resp = await msalInstance.loginPopup({ scopes: READ_SCOPES });
+    msalAccount = resp.account;
+    AUTH_MODE   = 'msal';
+    setConnectionUI('msal', `Connected — ${msalAccount.name || msalAccount.username}`);
+    document.getElementById('f-name').value = msalAccount.name || msalAccount.username;
+    document.getElementById('btn-sign').style.display = 'none';
+    document.getElementById('fallback-banner').classList.add('hidden');
+    const token = await getMsalToken();
+    await loadExcelEntries(token);
+  } catch(e) { console.warn('Sign in failed:', e); }
+}
+
+// ── MSAL TOKEN ────────────────────────────────────────────────
+async function getMsalToken() {
+  if (!msalInstance || !msalAccount) return null;
+  try {
+    const r = await msalInstance.acquireTokenSilent({ scopes: READ_SCOPES, account: msalAccount });
+    return r.accessToken;
+  } catch {
+    try {
+      const r = await msalInstance.acquireTokenPopup({ scopes: READ_SCOPES, account: msalAccount });
+      return r.accessToken;
+    } catch { return null; }
+  }
+}
+
+// ── EXCEL / GRAPH DATA LOADING ────────────────────────────────
+// token = null means use credentials:'include' (implicit M365 session)
+// token = string means use Bearer auth header (MSAL)
+
+function graphHeaders(token) {
+  const h = { Accept: 'application/json' };
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
+}
+
+function fetchOpts(token) {
+  const opts = { headers: graphHeaders(token) };
+  if (!token) opts.credentials = 'include';
+  return opts;
+}
+
+function updateOpenBtn(url) {
+  if (!url) return;
+  const b = document.getElementById('excel-open-btn');
+  if (b && !b.href) { b.href = url; b.style.display = 'inline-flex'; }
+}
+
+async function findExcelFileId(token) {
+  if (excelFileId) return excelFileId;
+  // Try direct path first (fastest)
+  try {
+    const direct = await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(EXCEL_FILENAME)}`,
+      fetchOpts(token)
+    );
+    if (direct.ok) {
+      const d = await direct.json();
+      excelFileId = d.id;
+      updateOpenBtn(d.webUrl);
+      return excelFileId;
+    }
+  } catch(e) { /* try search */ }
+  // Fall back to listing root children
+  const r = await fetch(
+    `https://graph.microsoft.com/v1.0/me/drive/root/children?$filter=name eq '${encodeURIComponent(EXCEL_FILENAME)}'&$select=id,name,webUrl`,
+    fetchOpts(token)
+  );
+  if (!r.ok) return null;
+  const data = await r.json();
+  const file = data.value?.[0];
+  if (!file) {
+    // Try searching more broadly
+    const search = await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodeURIComponent(EXCEL_FILENAME)}')?$select=id,name,webUrl`,
+      fetchOpts(token)
+    );
+    if (!search.ok) return null;
+    const sd = await search.json();
+    const sf = sd.value?.find(f => f.name === EXCEL_FILENAME);
+    if (!sf) return null;
+    excelFileId = sf.id;
+    // Cache the open URL if we found a webUrl
+    if (sf.webUrl && !EXCEL_OPEN_URL) {
+      const openBtn = document.getElementById('excel-open-btn');
+      if (openBtn) { openBtn.href = sf.webUrl; openBtn.style.display = 'inline-flex'; }
+    }
+    return excelFileId;
+  }
+  excelFileId = file.id;
+  if (file.webUrl && !EXCEL_OPEN_URL) {
+    const openBtn = document.getElementById('excel-open-btn');
+    if (openBtn) { openBtn.href = file.webUrl; openBtn.style.display = 'inline-flex'; }
+  }
+  return excelFileId;
+}
+
+async function loadExcelEntries(token) {
+  try {
+    const fileId = await findExcelFileId(token);
+    if (!fileId) {
+      console.warn('Excel file not found. Make sure the filename matches exactly:', EXCEL_FILENAME);
+      showBanner('warn', `Could not find "${EXCEL_FILENAME}" in your OneDrive. Make sure the filename matches exactly and the file has been saved to OneDrive (not just downloaded).`);
+      return;
+    }
+
+    // Read the RawData table rows
+    let rows = [];
+    // Try named table first
+    const tableR = await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/tables/${TABLE_NAME}/rows`,
+      fetchOpts(token)
+    );
+
+    if (tableR.ok) {
+      const tableData = await tableR.json();
+      rows = tableData.value || [];
+    } else if (tableR.status === 404) {
+      // No named table — fall back to reading the sheet range directly
+      // The 'Raw Data' sheet starts at row 1 (headers) then data from row 2
+      const sheetR = await fetch(
+        `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets('Raw Data')/usedRange`,
+        fetchOpts(token)
+      );
+      if (sheetR.ok) {
+        const sheetData = await sheetR.json();
+        const allRows = sheetData.values || [];
+        if (allRows.length > 1) {
+          // Skip header row, wrap each data row in the {values:[[...]]} format
+          rows = allRows.slice(1).map(r => ({ values: [r] }));
+        }
+        // Note: we need to build colMap from headers since we're reading raw sheet
+        const headers = allRows[0] || [];
+        colMap = {};
+        headers.forEach((h, i) => {
+          if (h) colMap[String(h).toLowerCase().replace(/\s+/g,'')] = i;
+        });
+      } else {
+        console.warn('Sheet read also failed:', sheetR.status);
+        return;
+      }
+    } else {
+      console.warn('Excel read failed:', tableR.status);
+      return;
+    }
+
+    // The columns come back in the same order as the Excel table headers.
+    // Map them by index based on the column names you set in Step 1.
+    // Index order: Timestamp(0), DLName(1), Area(2), StaffCount(3),
+    //              Focus(4), OtherDetail(5), Confidence(6), HealthCheck(7), Notes(8)
+    // Note: Microsoft Forms also prepends its own ID column — if your first column
+    // is "ID" rather than "Timestamp", adjust the indices below by +1.
+
+    // Build column map from table headers if not already set by sheet fallback
+    if (typeof colMap === "undefined") colMap = null;
+    if (!colMap) {
+      try {
+        const hdrR = await fetch(
+          `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/tables/${TABLE_NAME}/columns`,
+          fetchOpts(token)
+        );
+        if (hdrR.ok) {
+          const hdrData = await hdrR.json();
+          colMap = {};
+          (hdrData.value || []).forEach((c, i) => {
+            if (c.name) colMap[c.name.toLowerCase().replace(/\s+/g,'')] = i;
+          });
+        }
+      } catch(e) { /* use positional fallback */ }
+    }
+
+    // Map columns by name (case-insensitive) then fall back to known positional indices.
+    // Your Raw Data sheet columns:
+    // Id(0), Start time(1), Timestamp(2), Email(3), DLName(4), Area(5),
+    // StaffCount(6), Focus(7), OtherDetail(8), Confidence(9), HealthCheck(10), Notes(11)
+    function getCol(row, idx, altKey) {
+      // If colMap was built, use it; otherwise use positional index
+      if (colMap && altKey) {
+        const k = Object.keys(colMap).find(ck => ck === altKey || ck.includes(altKey.slice(0,6)));
+        if (k !== undefined && colMap[k] !== undefined) return row[colMap[k]];
+      }
+      return row[idx];
+    }
+
+    allEntries = rows.map((rowObj, i) => {
+      const row = rowObj.values?.[0] || [];
+      return {
+        id:          i,
+        timestamp:   getCol(row, 2, 'timestamp') || getCol(row, 1, 'starttime') || '',
+        name:        getCol(row, 4, 'dlname')    || '',
+        email:       getCol(row, 3, 'email')     || '',
+        area:        getCol(row, 5, 'area')      || '',
+        staff:       parseInt(getCol(row, 6, 'staffcount')) || 0,
+        focus:       getCol(row, 7, 'focus')     || '',
+        other:       getCol(row, 8, 'otherdetail') || '',
+        confidence:  getCol(row, 9, 'confidence') || '',
+        healthCheck: String(getCol(row, 10, 'healthcheck')).toLowerCase() === 'yes',
+        notes:       getCol(row, 11, 'notes')    || '',
+        date:        '',
+      };
+    }).filter(e => e.name && e.name.toString().trim()); // filter out empty/header rows
+
+    // Derive date from timestamp
+    allEntries.forEach(e => {
+      if (e.timestamp) {
+        try {
+          // Excel serial date or ISO string
+          if (typeof e.timestamp === 'number') {
+            const d = new Date((e.timestamp - 25569) * 86400 * 1000);
+            e.date = d.toISOString().split('T')[0];
+          } else {
+            e.date = new Date(e.timestamp).toISOString().split('T')[0];
+          }
+        } catch { e.date = ''; }
+      }
+    });
+
+    // Sort newest first
+    allEntries.sort((a, b) => (b.timestamp > a.timestamp ? 1 : -1));
+
+    buildDashboard();
+    renderRecentLocal();
+    document.getElementById('tc-total').textContent = allEntries.length;
+    const lr = document.getElementById('last-refresh');
+    if(lr){ const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); lr.innerHTML = `Last refreshed ${t} · <button onclick="refreshData()" id="btn-refresh" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--fm);font-size:.72rem;text-decoration:underline;padding:0">Refresh now</button>`; }
+
+  } catch(e) {
+    console.warn('loadExcelEntries error:', e);
+  }
+}
+
+// ── REFRESH BUTTON ────────────────────────────────────────────
+async function refreshData() {
+  const btn = document.getElementById('btn-refresh');
+  if (btn) { btn.textContent = 'Refreshing…'; btn.disabled = true; }
+  if (AUTH_MODE === 'msal') {
+    const token = await getMsalToken();
+    await loadExcelEntries(token);
+  } else if (AUTH_MODE === 'excel-silent') {
+    await loadExcelEntries(null);
+  }
+  if (btn) { btn.textContent = 'Refresh data'; btn.disabled = false; }
+}
+
+// ── CREATE LIST (setup tab — now creates the Excel table structure) ──
+async function createList() {
+  const status = document.getElementById('list-status');
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Nothing to create here — the Excel workbook and RawData table are created automatically by Microsoft Forms when you click "Open in Excel" in the Forms Responses tab. See Step 1 of the setup guide above.';
+}
+
+// ── LOCAL STORAGE ──────────────────────────────────────────
+const LS_KEY = 'dl-log-entries';
+function loadLocalEntries() {
+  try { const d = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); if (allEntries.length === 0) allEntries = d; } catch{}
+}
+function saveLocal(entry) {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    d.unshift(entry);
+    localStorage.setItem(LS_KEY, JSON.stringify(d.slice(0, 200)));
+  } catch{}
+}
+
+// ── FORM ──────────────────────────────────────────────────
+function handleFocusChange() {
+  const val = document.getElementById('f-focus').value;
+  document.getElementById('other-field').classList.toggle('show', val === 'Other');
+}
+
+function selectConf(n) {
+  confidenceSelected = n;
+  [1,2,3].forEach(i => {
+    const b = document.getElementById('c' + i);
+    b.className = 'conf-btn' + (i === n ? ` selected sel-${n}` : '');
+  });
+}
+
+function clearForm() {
+  document.getElementById('f-area').value = '';
+  document.getElementById('f-staff').value = 1;
+  document.getElementById('f-focus').value = '';
+  document.getElementById('f-other').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-hc').checked = false;
+  document.getElementById('other-field').classList.remove('show');
+  confidenceSelected = 0;
+  [1,2,3].forEach(i => document.getElementById('c' + i).className = 'conf-btn');
+  setDefaultDate();
+  document.getElementById('submit-status').textContent = '';
+}
+
+async function submitEntry() {
+  const name  = document.getElementById('f-name').value.trim();
+  const date  = document.getElementById('f-date').value;
+  const area  = document.getElementById('f-area').value;
+  const staff = parseInt(document.getElementById('f-staff').value) || 0;
+  const focus = document.getElementById('f-focus').value;
+  const other = document.getElementById('f-other').value.trim();
+  const notes = document.getElementById('f-notes').value.trim();
+  const hc    = document.getElementById('f-hc').checked;
+
+  const confLabels = { 1: 'Not yet confident', 2: 'Getting there', 3: 'Confident' };
+
+  if (!name || !date || !area || !focus) {
+    showStatus('Please complete the required fields.', false);
+    return;
+  }
+  if (focus === 'Other' && !other) {
+    showStatus('Please describe the focus area.', false);
+    return;
+  }
+
+  const entry = {
+    name, date, area, staff, focus,
+    other: focus === 'Other' ? other : '',
+    confidence: confidenceSelected ? confLabels[confidenceSelected] : '',
+    healthCheck: hc,
+    notes,
+    ts: Date.now()
+  };
+
+  const btn = document.getElementById('btn-submit');
+  const spinner = document.getElementById('submit-spinner');
+  btn.disabled = true;
+  spinner.classList.add('show');
+  showStatus('Saving…', null);
+
+  saveLocal(entry);
+  allEntries.unshift(entry);
+  // Note: permanent data lives in Microsoft Forms → Excel.
+  // This local save lets Digital Leads see their own history in the dashboard.
+  const online = false; // form submission is via Microsoft Forms link, not this tool
+  if (false) {
+    showStatus('', true);
+  } else {
+    showStatus('✓ Saved locally. Submit via the Forms link for the shared record.', true);
+    // Mailto fallback
+    const subject = encodeURIComponent(`DL Log — ${name} — ${date}`);
+    const body = encodeURIComponent(
+      `Digital Lead: ${name}\nDate: ${date}\nArea: ${area}\nStaff supported: ${staff}\nFocus: ${focus}${focus==='Other'?' — '+other:''}\nConfidence: ${entry.confidence||'Not recorded'}\nHealth Check: ${hc?'Yes':'No'}\nNotes: ${notes||'—'}`
+    );
+    document.getElementById('submit-status').innerHTML += ` &nbsp;<a href="mailto:graeme.wright@weston.ac.uk?subject=${subject}&body=${body}" style="color:var(--blue);font-size:.72rem">Send to DPC by email →</a>`;
+  }
+
+  btn.disabled = false;
+  spinner.classList.remove('show');
+  buildDashboard();
+  renderRecentLocal();
+  clearForm();
+}
+
+function showStatus(msg, ok) {
+  const el = document.getElementById('submit-status');
+  el.textContent = msg;
+  el.className = 'submit-status' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+}
+
+// ── RECENT LIST ────────────────────────────────────────────
+function renderRecentLocal() {
+  const el = document.getElementById('recent-list');
+  const myName = document.getElementById('f-name').value;
+  const mine = allEntries.filter(e => !myName || e.name === myName).slice(0, 5);
+  if (!mine.length) { el.innerHTML = '<div class="log-empty">No entries yet.</div>'; return; }
+  const focusTags = {
+    'Teams environment':'tag-blue','Accessibility':'tag-teal','AI in teaching':'tag-orange',
+    'Assessment tools':'tag-amber','Learner digital support':'tag-green',
+    'Data and evidence':'tag-gray','Health Check':'tag-blue','Other':'tag-gray'
+  };
+  el.innerHTML = mine.map(e => `
+    <div class="log-item">
+      <div class="log-date">${fmtDate(e.date)}</div>
+      <div class="log-body">
+        <div class="log-focus"><span class="tag ${focusTags[e.focus]||'tag-gray'}">${e.focus}${e.other?' — '+e.other:''}</span></div>
+        <div class="log-meta">${e.area} · ${e.staff} staff · ${e.confidence||'—'}</div>
+        ${e.notes?`<div class="log-note">${e.notes}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────
+function buildDashboard() {
+  const entries = filteredEntries();
+  const total = entries.length;
+  const reach = entries.reduce((s, e) => s + (e.staff || 0), 0);
+  const areas = new Set(entries.map(e => e.area?.split(' — ')[0])).size;
+  const hcs   = entries.filter(e => e.healthCheck).length;
+
+  document.getElementById('d-total').textContent = total;
+  document.getElementById('d-reach').textContent = reach;
+  document.getElementById('d-areas').textContent = areas;
+  document.getElementById('d-hc').textContent   = hcs;
+  document.getElementById('tc-total').textContent = allEntries.length;
+
+  buildChartFocus(entries);
+  buildChartConf(entries);
+  buildChartTime(entries);
+  buildChartArea(entries);
+  buildChartDL(entries);
+  populateFilters();
+  renderTable();
+}
+
+function filteredEntries() { return allEntries; }
+
+function buildChartFocus(entries) {
+  const counts = {};
+  entries.forEach(e => { const k = e.focus || 'Unknown'; counts[k] = (counts[k]||0)+1; });
+  const labels = Object.keys(counts);
+  const data   = labels.map(l => counts[l]);
+  const palette = ['#2e75b6','#0f766e','#c2410c','#b45309','#15803d','#6b7280','#6d28d9','#dc2626'];
+
+  const ctx = document.getElementById('chart-focus').getContext('2d');
+  if (chartFocus) chartFocus.destroy();
+  chartFocus = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: labels.map((_, i) => palette[i % palette.length]), borderRadius: 4, borderSkipped: false }]},
+    options: opts({ indexAxis: 'y', plugins: { legend: { display: false } } })
+  });
+}
+
+function buildChartConf(entries) {
+  const labels = ['Not yet confident', 'Getting there', 'Confident', 'Not recorded'];
+  const colors = ['#ea580c','#b45309','#15803d','#d1d5db'];
+  const counts = labels.map(l => entries.filter(e => (e.confidence || 'Not recorded') === l).length);
+  const ctx = document.getElementById('chart-conf').getContext('2d');
+  if (chartConf) chartConf.destroy();
+  chartConf = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
+  });
+}
+
+function buildChartTime(entries) {
+  const weeks = {};
+  entries.forEach(e => {
+    if (!e.date) return;
+    const d = new Date(e.date);
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const k = monday.toISOString().split('T')[0];
+    weeks[k] = (weeks[k] || 0) + 1;
+  });
+  const sorted = Object.keys(weeks).sort();
+  const ctx = document.getElementById('chart-time').getContext('2d');
+  if (chartTime) chartTime.destroy();
+  chartTime = new Chart(ctx, {
+    type: 'line',
+    data: { labels: sorted.map(d => fmtDate(d)), datasets: [{ data: sorted.map(k => weeks[k]), borderColor: '#2e75b6', backgroundColor: 'rgba(46,117,182,.1)', tension: .3, fill: true, pointRadius: 4, pointBackgroundColor: '#2e75b6' }]},
+    options: opts({ plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } } } })
+  });
+}
+
+function buildChartArea(entries) {
+  const counts = {};
+  entries.forEach(e => { const k = e.area?.split(' — ')[0] || 'Unknown'; counts[k] = (counts[k]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 12);
+  const ctx = document.getElementById('chart-area').getContext('2d');
+  if (chartArea) chartArea.destroy();
+  chartArea = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(x=>x[0]), datasets: [{ data: sorted.map(x=>x[1]), backgroundColor: '#deeaf1', borderColor: '#2e75b6', borderWidth: 1.5, borderRadius: 3, borderSkipped: false }]},
+    options: opts({ indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } } } })
+  });
+}
+
+function buildChartDL(entries) {
+  const counts = {};
+  entries.forEach(e => { const k = e.name || 'Unknown'; counts[k] = (counts[k]||0) + (e.staff||0); });
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const ctx = document.getElementById('chart-dl').getContext('2d');
+  if (chartDL) chartDL.destroy();
+  chartDL = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(x=>x[0]), datasets: [{ data: sorted.map(x=>x[1]), backgroundColor: '#ccfbf1', borderColor: '#0f766e', borderWidth: 1.5, borderRadius: 3, borderSkipped: false }]},
+    options: opts({ indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } } } })
+  });
+}
+
+function opts(extra = {}) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12 } }, ...(extra.plugins || {}) },
+    scales: {
+      x: { ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+      y: { ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+      ...(extra.scales || {})
+    },
+    ...Object.fromEntries(Object.entries(extra).filter(([k]) => !['plugins','scales'].includes(k)))
+  };
+}
+
+// ── TABLE ──────────────────────────────────────────────────
+function populateFilters() {
+  const dls   = [...new Set(allEntries.map(e => e.name).filter(Boolean))].sort();
+  const areas = [...new Set(allEntries.map(e => e.area?.split(' — ')[0]).filter(Boolean))].sort();
+  const foci  = [...new Set(allEntries.map(e => e.focus).filter(Boolean))].sort();
+
+  populateSelect('f-filter-dl',   dls,   'All Digital Leads');
+  populateSelect('f-filter-area', areas, 'All areas');
+  populateSelect('f-filter-focus',foci,  'All focus areas');
+}
+
+function populateSelect(id, options, placeholder) {
+  const el = document.getElementById(id);
+  const cur = el.value;
+  el.innerHTML = `<option value="">${placeholder}</option>` + options.map(o => `<option${o===cur?' selected':''}>${o}</option>`).join('');
+}
+
+function renderTable() {
+  const dlF    = document.getElementById('f-filter-dl').value;
+  const areaF  = document.getElementById('f-filter-area').value;
+  const focusF = document.getElementById('f-filter-focus').value;
+
+  let rows = allEntries.filter(e =>
+    (!dlF    || e.name === dlF) &&
+    (!areaF  || e.area?.startsWith(areaF)) &&
+    (!focusF || e.focus === focusF)
+  );
+
+  const wrap = document.getElementById('table-wrap');
+  if (!rows.length) { wrap.innerHTML = '<div class="dt-empty">No entries match the current filters.</div>'; return; }
+
+  const focusTags = {
+    'Teams environment':'tag-blue','Accessibility':'tag-teal','AI in teaching':'tag-orange',
+    'Assessment tools':'tag-amber','Learner digital support':'tag-green',
+    'Data and evidence':'tag-gray','Health Check':'tag-blue','Other':'tag-gray'
+  };
+  const confTags = { 'Not yet confident':'tag-red', 'Getting there':'tag-amber', 'Confident':'tag-green' };
+
+  wrap.innerHTML = `<table class="dt">
+    <thead><tr><th>Date</th><th>Digital Lead</th><th>Area</th><th>Staff</th><th>Focus</th><th>Confidence</th><th>HC</th><th>Notes</th></tr></thead>
+    <tbody>${rows.map(e => `
+    <tr>
+      <td>${fmtDate(e.date)}</td>
+      <td>${e.name}</td>
+      <td>${e.area?.split(' — ')[0] || '—'}</td>
+      <td style="text-align:center;font-weight:600">${e.staff || 0}</td>
+      <td><span class="tag ${focusTags[e.focus]||'tag-gray'}">${e.focus}${e.other?' — '+e.other:''}</span></td>
+      <td>${e.confidence?`<span class="tag ${confTags[e.confidence]||'tag-gray'}">${e.confidence}</span>`:'—'}</td>
+      <td style="text-align:center">${e.healthCheck?'✓':'—'}</td>
+      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.notes||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ── EXPORT ────────────────────────────────────────────────
+function exportReport() {
+  const dlF    = document.getElementById('f-filter-dl').value;
+  const areaF  = document.getElementById('f-filter-area').value;
+  const focusF = document.getElementById('f-filter-focus').value;
+  let rows = allEntries.filter(e =>
+    (!dlF    || e.name === dlF) &&
+    (!areaF  || e.area?.startsWith(areaF)) &&
+    (!focusF || e.focus === focusF)
+  );
+  const total = rows.length;
+  const reach = rows.reduce((s,e)=>s+(e.staff||0),0);
+  const hcs   = rows.filter(e=>e.healthCheck).length;
+  const conf3 = rows.filter(e=>e.confidence==='Confident').length;
+  const focusCounts = {};
+  rows.forEach(e => { focusCounts[e.focus]=(focusCounts[e.focus]||0)+1; });
+  const topFocus = Object.entries(focusCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k} (${v})`).join(', ');
+
+  const text = `Digital Leads Activity Report
+Generated: ${new Date().toLocaleDateString('en-GB')}
+Filters: ${dlF||'All DLs'} · ${areaF||'All areas'} · ${focusF||'All focus areas'}
+
+SUMMARY
+Sessions logged:     ${total}
+Total staff reached: ${reach}
+Health Checks done:  ${hcs}
+Confident outcomes:  ${conf3} of ${rows.filter(e=>e.confidence).length} recorded
+
+TOP FOCUS AREAS: ${topFocus || '—'}
+
+FULL LOG
+${rows.map(e=>`${fmtDate(e.date)} | ${e.name} | ${e.area?.split(' — ')[0]||'?'} | ${e.focus} | ${e.staff} staff | ${e.confidence||'—'}${e.notes?' | '+e.notes:''}`).join('\n')}`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-export');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+// ── UI HELPERS ────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const map = { log: 0, dash: 1, setup: 2 };
+  document.querySelectorAll('.tab')[map[name]].classList.add('active');
+  document.getElementById('view-' + name).classList.add('active');
+  if (name === 'dash') buildDashboard();
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  try {
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+  } catch { return d; }
+}
+</script>

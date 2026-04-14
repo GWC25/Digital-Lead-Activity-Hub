@@ -3,1086 +3,1105 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Digital Leads · Activity Hub</title>
+<title>Digital Leads · Activity Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Fraunces:wght@300;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
+  --ink:#0d1117;--ink2:#1c2333;--ink3:#2d3748;
   --navy:#0f2d4a;--blue:#1d4e89;--mid:#2e75b6;--sky:#deeaf1;
-  --bg:#f5f4f0;--surface:#fff;--border:#e0ddd5;--text:#1a1916;--muted:#6b6860;
-  --teal:#0f766e;--amber:#b45309;--orange:#c2410c;--green:#15803d;
-  --r1:#15803d;--r1l:#dcfce7;--r1b:#86efac;
-  --r2:#2563eb;--r2l:#dbeafe;--r2b:#93c5fd;
-  --r3:#b45309;--r3l:#fef3c7;--r3b:#fcd34d;
-  --r4:#ea580c;--r4l:#ffedd5;--r4b:#fdba74;
-  --r5:#dc2626;--r5l:#fee2e2;--r5b:#fca5a5;
-  --fd:'Fraunces',Georgia,serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
-  --r:8px;--rl:12px;--sh:0 1px 3px rgba(0,0,0,.08);--shm:0 6px 24px rgba(0,0,0,.12);
+  --surface:#ffffff;--bg:#f0f2f5;--border:#e2e8f0;
+  --text:#1a202c;--muted:#64748b;--light:#94a3b8;
+  --teal:#0f766e;--teal-l:#ccfbf1;
+  --amber:#b45309;--amber-l:#fef3c7;
+  --orange:#c2410c;--orange-l:#ffedd5;
+  --green:#15803d;--green-l:#dcfce7;
+  --red:#dc2626;--red-l:#fee2e2;
+  --r1:#15803d;--r1l:#dcfce7;
+  --r2:#2563eb;--r2l:#dbeafe;
+  --r3:#b45309;--r3l:#fef3c7;
+  --r4:#ea580c;--r4l:#ffedd5;
+  --r5:#dc2626;--r5l:#fee2e2;
+  --fd:'Syne',sans-serif;
+  --fb:'DM Sans',sans-serif;
+  --fm:'DM Mono',monospace;
+  --radius:10px;--radius-lg:16px;--radius-xl:20px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06);
+  --shadow:0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.12);
 }
-html,body{height:100%;font-family:var(--fb);background:var(--bg);color:var(--text);font-size:15px}
-body{display:flex;flex-direction:column}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px}
+body{display:flex;flex-direction:column;min-height:100vh}
 
-/* ── HEADER ── */
-.hdr{
-  background:var(--navy);color:#fff;padding:0 1.75rem;height:52px;
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);
+/* ── SKIP LINK ── */
+.skip{position:absolute;left:-9999px}.skip:focus{position:fixed;top:0;left:0;z-index:9999;background:var(--navy);color:#fff;padding:.5rem 1rem}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:var(--ink);color:#fff;
+  padding:0 1.5rem;height:56px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
 }
-.hdr-left{display:flex;align-items:center;gap:.75rem}
-.hdr-icon{width:32px;height:32px;background:var(--mid);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:.9rem}
-.hdr-title{font-family:var(--fd);font-size:1rem;font-weight:600}
-.hdr-sub{font-size:.65rem;opacity:.55;font-family:var(--fm)}
-.hdr-right{display:flex;align-items:center;gap:.75rem}
-.auth-status{font-size:.65rem;font-family:var(--fm);display:flex;align-items:center;gap:.4rem}
-.auth-dot{width:7px;height:7px;border-radius:50%;background:#6b7280}
-.auth-dot.ok{background:#4ade80}
-.auth-dot.err{background:#f87171}
-.auth-name{opacity:.7}
-.btn-sign{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:var(--r);padding:4px 12px;font-size:.72rem;cursor:pointer;font-family:var(--fb);transition:background .12s}
-.btn-sign:hover{background:rgba(255,255,255,.22)}
-
-/* ── TABS ── */
-.tabs{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0;padding:0 1.75rem;flex-shrink:0}
-.tab{padding:.7rem 1.1rem;font-size:.8rem;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:color .12s,border-color .12s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--fb)}
-.tab:hover{color:var(--navy)}
-.tab.active{color:var(--navy);border-bottom-color:var(--mid)}
-.tab-count{font-family:var(--fm);font-size:.62rem;background:var(--sky);color:var(--blue);padding:1px 6px;border-radius:99px;margin-left:.3rem}
-
-/* ── MAIN ── */
-.main{flex:1;overflow:hidden;display:flex}
-.view{flex:1;overflow-y:auto;padding:1.75rem;display:none}
-.view.active{display:block}
-.view::-webkit-scrollbar{width:5px}
-.view::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.inner{max-width:900px}
-
-/* ── FALLBACK BANNER ── */
-.fallback-banner{
-  background:#fef3c7;border:1px solid #fcd34d;border-radius:var(--rl);
-  padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:.6rem;
-  font-size:.78rem;line-height:1.5;color:#92400e;
+.tb-brand{display:flex;align-items:center;gap:.75rem}
+.tb-logo{
+  width:34px;height:34px;background:var(--mid);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fd);font-size:.75rem;font-weight:800;color:#fff;letter-spacing:-.02em;
 }
-.fallback-banner.hidden{display:none}
-.fallback-banner strong{font-weight:600}
-
-/* ── FORM ── */
-.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;box-shadow:var(--sh)}
-.form-title{font-family:var(--fd);font-size:1.3rem;color:var(--navy);margin-bottom:.25rem;font-weight:600}
-.form-sub{font-size:.78rem;color:var(--muted);margin-bottom:1.5rem}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
-.form-group{display:flex;flex-direction:column;gap:.3rem}
-.form-group.full{grid-column:1/-1}
-label{font-size:.72rem;font-weight:500;color:var(--navy);letter-spacing:.02em}
-label .req{color:var(--orange)}
-input,select,textarea{
-  padding:.55rem .7rem;border:1px solid var(--border);border-radius:var(--r);
-  font-family:var(--fb);font-size:.82rem;color:var(--text);background:var(--bg);
-  transition:border-color .12s,box-shadow .12s;outline:none;width:100%;
+.tb-title{font-family:var(--fd);font-size:.95rem;font-weight:700;letter-spacing:-.01em}
+.tb-sub{font-size:.65rem;opacity:.45;font-family:var(--fm);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:.75rem}
+.data-status{display:flex;align-items:center;gap:.45rem;font-size:.68rem;font-family:var(--fm);opacity:.7}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#4b5563;flex-shrink:0;transition:background .3s}
+.status-dot.live{background:#4ade80;box-shadow:0 0 6px #4ade8088}
+.status-dot.warn{background:#fbbf24}
+.btn-load{
+  display:flex;align-items:center;gap:.4rem;
+  background:var(--mid);color:#fff;border:none;border-radius:8px;
+  padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;
+  font-family:var(--fb);transition:background .15s;white-space:nowrap;
 }
-input:focus,select:focus,textarea:focus{border-color:var(--mid);box-shadow:0 0 0 3px rgba(46,117,182,.12);background:#fff}
-input[readonly]{background:var(--sky);color:var(--blue);cursor:default;border-color:var(--border)}
-textarea{resize:vertical;min-height:68px;line-height:1.5}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6860' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .7rem center;padding-right:2rem}
+.btn-load:hover{background:var(--blue)}
+.btn-load svg{width:14px;height:14px;flex-shrink:0}
 
-.confidence-row{display:flex;gap:.5rem;margin-top:.2rem}
-.conf-btn{
-  flex:1;padding:.5rem .3rem;border:1px solid var(--border);border-radius:var(--r);
-  background:var(--bg);cursor:pointer;font-size:.75rem;font-family:var(--fb);
-  text-align:center;color:var(--muted);transition:all .12s;line-height:1.3;
+/* ── LOAD SCREEN ── */
+.load-screen{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:2rem;
 }
-.conf-btn:hover{border-color:var(--mid);background:var(--sky)}
-.conf-btn.selected{border-color:var(--mid);background:var(--sky);color:var(--blue);font-weight:500}
-.conf-btn.sel-1{border-color:var(--r4);background:var(--r4l);color:var(--r4)}
-.conf-btn.sel-2{border-color:var(--r3);background:var(--r3l);color:var(--r3)}
-.conf-btn.sel-3{border-color:var(--r1);background:var(--r1l);color:var(--r1)}
-
-.toggle-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0}
-.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;inset:0;background:#d1d5db;border-radius:99px;cursor:pointer;transition:background .15s}
-.toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .15s}
-.toggle input:checked + .toggle-slider{background:var(--teal)}
-.toggle input:checked + .toggle-slider::before{transform:translateX(18px)}
-.toggle-label{font-size:.8rem;color:var(--text)}
-
-.other-field{display:none;margin-top:.5rem}
-.other-field.show{display:block}
-
-.form-actions{display:flex;align-items:center;gap:.75rem;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)}
-.btn-submit{
-  background:var(--navy);color:#fff;border:none;border-radius:var(--r);
-  padding:.6rem 1.5rem;font-size:.82rem;font-weight:500;cursor:pointer;
-  font-family:var(--fb);transition:background .12s;display:flex;align-items:center;gap:.4rem;
+.load-card{
+  background:var(--surface);border-radius:var(--radius-xl);
+  padding:3rem 2.5rem;text-align:center;max-width:480px;width:100%;
+  box-shadow:var(--shadow-lg);border:1px solid var(--border);
 }
-.btn-submit:hover{background:var(--blue)}
-.btn-submit:disabled{opacity:.45;cursor:not-allowed}
-.btn-clear{background:none;border:1px solid var(--border);border-radius:var(--r);padding:.6rem 1rem;font-size:.78rem;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .12s}
-.btn-clear:hover{border-color:var(--orange);color:var(--orange)}
-.submit-status{font-size:.75rem;font-family:var(--fm)}
-.submit-status.ok{color:var(--green)}
-.submit-status.err{color:var(--orange)}
-
-/* ── RECENT LOG (form page) ── */
-.recent-section{margin-top:1.5rem}
-.recent-title{font-size:.72rem;font-family:var(--fm);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem}
-.log-item{
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);
-  padding:.75rem 1rem;margin-bottom:.5rem;display:flex;align-items:flex-start;gap:.75rem;
-  border-left:3px solid var(--mid);
+.load-icon{
+  width:72px;height:72px;background:var(--sky);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 1.5rem;font-size:1.8rem;
 }
-.log-date{font-family:var(--fm);font-size:.65rem;color:var(--mid);white-space:nowrap;margin-top:.15rem}
-.log-body{flex:1;min-width:0}
-.log-focus{font-size:.8rem;font-weight:500;color:var(--navy)}
-.log-meta{font-size:.72rem;color:var(--muted);margin-top:.15rem}
-.log-note{font-size:.74rem;color:var(--muted);margin-top:.2rem;font-style:italic}
-.log-empty{font-size:.8rem;color:var(--muted);padding:.75rem 0;text-align:center}
+.load-title{font-family:var(--fd);font-size:1.6rem;font-weight:800;color:var(--navy);margin-bottom:.5rem;letter-spacing:-.02em}
+.load-sub{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:2rem;max-width:340px;margin-left:auto;margin-right:auto}
+.load-btn{
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:var(--navy);color:#fff;border:none;border-radius:var(--radius);
+  padding:.75rem 1.75rem;font-size:.9rem;font-weight:600;cursor:pointer;
+  font-family:var(--fd);transition:all .15s;letter-spacing:-.01em;
+}
+.load-btn:hover{background:var(--blue);transform:translateY(-1px);box-shadow:var(--shadow)}
+.load-note{font-size:.72rem;color:var(--light);margin-top:1.25rem;font-family:var(--fm);line-height:1.5}
+.load-recent{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+.load-recent-title{font-size:.68rem;font-family:var(--fm);letter-spacing:.06em;text-transform:uppercase;color:var(--light);margin-bottom:.6rem}
+.btn-reopen{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:var(--teal);color:#fff;border:none;border-radius:var(--radius);
+  padding:.55rem 1.25rem;font-size:.8rem;font-weight:500;cursor:pointer;
+  font-family:var(--fb);transition:background .15s;
+}
+.btn-reopen:hover{background:#0d6b63}
 
-/* ── DASHBOARD STATS ── */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin-bottom:1.25rem}
-@media(max-width:640px){.stats-row{grid-template-columns:1fr 1fr}}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:.85rem 1rem;text-align:center}
-.stat-n{font-family:var(--fd);font-size:1.7rem;font-weight:600;color:var(--navy);line-height:1}
-.stat-l{font-size:.67rem;color:var(--muted);margin-top:.2rem}
+/* ── DASHBOARD ── */
+.dashboard{flex:1;display:none;flex-direction:column;overflow:hidden}
+.dashboard.active{display:flex}
 
-/* ── CHART GRID ── */
-.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:1.25rem}
-@media(max-width:640px){.charts-grid{grid-template-columns:1fr}}
-.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1rem}
-.chart-card.wide{grid-column:1/-1}
-.chart-title{font-size:.72rem;font-family:var(--fm);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem}
-.chart-wrap{position:relative;height:180px}
-.chart-wrap.tall{height:240px}
+/* ── FILTER BAR ── */
+.filter-bar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:.6rem 1.5rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+  flex-shrink:0;
+}
+.filter-label{font-size:.65rem;font-family:var(--fm);color:var(--light);letter-spacing:.06em;text-transform:uppercase;flex-shrink:0;margin-right:.2rem}
+.filter-select{
+  padding:.3rem .65rem;border:1px solid var(--border);border-radius:6px;
+  font-size:.75rem;background:var(--bg);font-family:var(--fb);color:var(--text);
+  cursor:pointer;transition:border-color .12s;
+}
+.filter-select:focus{outline:none;border-color:var(--mid)}
+.filter-date{padding:.3rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.75rem;background:var(--bg);font-family:var(--fb);color:var(--text)}
+.filter-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;margin:0 .15rem}
+.btn-clear-filters{
+  background:none;border:1px solid var(--border);border-radius:6px;
+  padding:.28rem .65rem;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:var(--fb);
+  transition:all .12s;white-space:nowrap;
+}
+.btn-clear-filters:hover{border-color:var(--red);color:var(--red)}
+.active-filters{display:flex;gap:.3rem;flex-wrap:wrap;margin-left:.25rem}
+.filter-chip{
+  display:inline-flex;align-items:center;gap:.3rem;
+  background:var(--sky);color:var(--blue);border:1px solid var(--mid);
+  border-radius:99px;padding:2px 8px 2px 10px;font-size:.68rem;font-family:var(--fm);font-weight:500;
+}
+.filter-chip button{background:none;border:none;cursor:pointer;color:var(--blue);font-size:.75rem;line-height:1;padding:0;display:flex;align-items:center}
+
+/* ── MAIN CONTENT ── */
+.main{flex:1;overflow-y:auto;padding:1.25rem 1.5rem 2rem}
+.main::-webkit-scrollbar{width:5px}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── STAT CARDS ── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;margin-bottom:1.25rem}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr}}
+.stat-card{
+  background:var(--surface);border-radius:var(--radius-lg);padding:1rem 1.1rem;
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);
+  transition:box-shadow .15s,transform .15s;position:relative;overflow:hidden;
+}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--mid)}
+.stat-card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.stat-card.c-teal::before{background:var(--teal)}
+.stat-card.c-green::before{background:var(--green)}
+.stat-card.c-amber::before{background:var(--amber)}
+.stat-card.c-orange::before{background:var(--orange)}
+.stat-n{font-family:var(--fd);font-size:1.9rem;font-weight:800;color:var(--navy);line-height:1;letter-spacing:-.03em}
+.stat-l{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-weight:500}
+.stat-delta{font-size:.65rem;font-family:var(--fm);margin-top:.35rem;color:var(--light)}
+
+/* ── CHARTS GRID ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem}
+@media(max-width:800px){.charts-grid{grid-template-columns:1fr}}
+.charts-wide{display:grid;grid-template-columns:2fr 1fr;gap:.75rem;margin-bottom:1.25rem}
+@media(max-width:800px){.charts-wide{grid-template-columns:1fr}}
+.chart-card{
+  background:var(--surface);border-radius:var(--radius-lg);padding:1rem 1.1rem;
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);
+}
+.chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.chart-title{font-size:.72rem;font-family:var(--fm);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.chart-hint{font-size:.62rem;color:var(--light);font-family:var(--fm)}
+.chart-wrap{position:relative}
+.chart-wrap.h160{height:160px}
+.chart-wrap.h220{height:220px}
+.chart-wrap.h280{height:280px}
 
 /* ── DATA TABLE ── */
-.table-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
-.table-hdr{padding:.85rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
-.table-title{font-size:.78rem;font-weight:600;color:var(--navy)}
-.table-filters{display:flex;gap:.5rem;flex-wrap:wrap}
-.filter-select{padding:.3rem .6rem;border:1px solid var(--border);border-radius:var(--r);font-size:.72rem;background:var(--bg);font-family:var(--fb);color:var(--text);cursor:pointer}
-.btn-export{background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:.3rem .75rem;font-size:.72rem;cursor:pointer;font-family:var(--fb);transition:background .12s}
+.table-card{
+  background:var(--surface);border-radius:var(--radius-lg);
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;
+}
+.table-hdr{
+  padding:.85rem 1.1rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;
+}
+.table-title{font-size:.78rem;font-weight:600;color:var(--navy);font-family:var(--fd)}
+.table-actions{display:flex;gap:.4rem;align-items:center}
+.btn-export{
+  background:var(--navy);color:#fff;border:none;border-radius:6px;
+  padding:.3rem .75rem;font-size:.72rem;cursor:pointer;font-family:var(--fb);
+  transition:background .12s;display:flex;align-items:center;gap:.3rem;
+}
 .btn-export:hover{background:var(--blue)}
-.dt{width:100%;border-collapse:collapse;font-size:.74rem}
-.dt thead th{background:var(--bg);padding:.5rem .75rem;text-align:left;font-size:.63rem;font-family:var(--fm);font-weight:500;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
-.dt tbody tr{border-bottom:1px solid var(--border)}
-.dt tbody tr:last-child{border-bottom:none}
-.dt tbody tr:hover{background:#fafaf8}
-.dt td{padding:.5rem .75rem;line-height:1.4;vertical-align:middle}
-.dt td:first-child{font-family:var(--fm);font-size:.65rem;color:var(--mid)}
-.tag{display:inline-block;font-size:.62rem;font-family:var(--fm);padding:1px 7px;border-radius:99px;font-weight:500}
+.tbl{width:100%;border-collapse:collapse;font-size:.76rem}
+.tbl thead th{
+  background:var(--bg);padding:.5rem .8rem;text-align:left;
+  font-size:.62rem;font-family:var(--fm);font-weight:500;letter-spacing:.04em;
+  color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);
+  white-space:nowrap;cursor:pointer;user-select:none;transition:background .1s;
+}
+.tbl thead th:hover{background:var(--sky)}
+.tbl thead th.sorted{color:var(--blue)}
+.tbl thead th .sort-arrow{margin-left:.3rem;opacity:.4;font-size:.6rem}
+.tbl thead th.sorted .sort-arrow{opacity:1}
+.tbl tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.tbl tbody tr:last-child{border-bottom:none}
+.tbl tbody tr:hover{background:#f8fafc}
+.tbl tbody tr.selected{background:var(--sky)}
+.tbl td{padding:.5rem .8rem;line-height:1.4;vertical-align:middle}
+.tbl td:first-child{font-family:var(--fm);font-size:.65rem;color:var(--light)}
+.tbl-empty{padding:2.5rem;text-align:center;color:var(--muted);font-size:.82rem}
+
+/* ── TAGS ── */
+.tag{display:inline-block;font-size:.62rem;font-family:var(--fm);padding:2px 7px;border-radius:99px;font-weight:500;white-space:nowrap}
 .tag-blue{background:var(--sky);color:var(--blue)}
-.tag-teal{background:#ccfbf1;color:var(--teal)}
-.tag-amber{background:#fef3c7;color:var(--amber)}
-.tag-orange{background:#ffedd5;color:var(--orange)}
-.tag-green{background:var(--r1l);color:var(--r1)}
-.tag-red{background:var(--r5l);color:var(--r5)}
-.tag-gray{background:#f3f4f6;color:#6b7280}
-.dt-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.8rem}
+.tag-teal{background:var(--teal-l);color:var(--teal)}
+.tag-amber{background:var(--amber-l);color:var(--amber)}
+.tag-orange{background:var(--orange-l);color:var(--orange)}
+.tag-green{background:var(--green-l);color:var(--green)}
+.tag-red{background:var(--red-l);color:var(--red)}
+.tag-gray{background:#f1f5f9;color:#64748b}
+.conf-1{background:var(--orange-l);color:var(--orange)}
+.conf-2{background:var(--amber-l);color:var(--amber)}
+.conf-3{background:var(--green-l);color:var(--green)}
 
-/* ── SETUP PAGE ── */
-.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;max-width:560px}
-.setup-title{font-family:var(--fd);font-size:1.2rem;color:var(--navy);margin-bottom:.4rem;font-weight:600}
-.setup-sub{font-size:.8rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6}
-.setup-step{display:flex;gap:.75rem;margin-bottom:1rem;align-items:flex-start}
-.step-num{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:600;flex-shrink:0;margin-top:.1rem}
-.step-body{flex:1}
-.step-title{font-size:.8rem;font-weight:600;color:var(--navy);margin-bottom:.2rem}
-.step-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
-.code-block{background:#1a1916;color:#e5e7eb;border-radius:var(--r);padding:.65rem .85rem;font-family:var(--fm);font-size:.72rem;margin:.5rem 0;overflow-x:auto;line-height:1.6;word-break:break-all}
-.btn-primary{background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:.55rem 1.25rem;font-size:.8rem;font-weight:500;cursor:pointer;font-family:var(--fb);transition:background .12s;display:inline-flex;align-items:center;gap:.4rem}
-.btn-primary:hover{background:var(--blue)}
-
-/* ── SPINNER ── */
-.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
-.spinner.show{display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* ── DETAIL PANEL ── */
+.detail-overlay{
+  position:fixed;inset:0;background:rgba(13,17,23,.5);z-index:500;
+  display:none;align-items:flex-start;justify-content:flex-end;
+  backdrop-filter:blur(2px);
+}
+.detail-overlay.open{display:flex}
+.detail-panel{
+  background:var(--surface);width:400px;max-width:100vw;height:100vh;
+  overflow-y:auto;box-shadow:var(--shadow-lg);
+  animation:slideIn .2s ease;
+}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.detail-panel::-webkit-scrollbar{width:4px}
+.detail-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.detail-hdr{
+  background:var(--ink);color:#fff;padding:1.1rem 1.25rem;
+  display:flex;align-items:flex-start;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+}
+.detail-title{font-family:var(--fd);font-size:1rem;font-weight:700;line-height:1.3}
+.detail-date{font-size:.65rem;opacity:.55;font-family:var(--fm);margin-top:.2rem}
+.detail-close{background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:6px;padding:.3rem .5rem;cursor:pointer;font-size:.8rem;line-height:1;transition:background .12s}
+.detail-close:hover{background:rgba(255,255,255,.25)}
+.detail-body{padding:1.25rem}
+.detail-row{margin-bottom:1rem}
+.detail-key{font-size:.62rem;font-family:var(--fm);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--light);margin-bottom:.25rem}
+.detail-val{font-size:.82rem;color:var(--text);line-height:1.5}
+.detail-divider{border:none;border-top:1px solid var(--border);margin:1rem 0}
 
 /* ── MISC ── */
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
-hr{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
+.hidden{display:none!important}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.1rem;border-top:1px solid var(--border);font-size:.72rem;color:var(--muted)}
+.page-btns{display:flex;gap:.3rem}
+.page-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:.25rem .55rem;font-size:.72rem;cursor:pointer;font-family:var(--fb);color:var(--muted);transition:all .12s}
+.page-btn:hover{background:var(--sky);border-color:var(--mid);color:var(--blue)}
+.page-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
 </style>
 </head>
 <body>
+<a href="#main-content" class="skip">Skip to content</a>
 
-<!-- ── HEADER ── -->
-<header class="hdr" role="banner">
-  <div class="hdr-left">
-    <div class="hdr-icon">DL</div>
+<!-- ── TOPBAR ── -->
+<header class="topbar" role="banner">
+  <div class="tb-brand">
+    <div class="tb-logo">DL</div>
     <div>
-      <div class="hdr-title">Digital Leads · Activity Hub</div>
-      <div class="hdr-sub">Weston College Group · Digital Pedagogy Programme</div>
+      <div class="tb-title">Digital Leads · Activity Dashboard</div>
+      <div class="tb-sub">Weston College Group · Digital Pedagogy Programme</div>
     </div>
   </div>
-  <div class="hdr-right">
-    <div class="auth-status">
-      <div class="auth-dot" id="auth-dot"></div>
-      <span class="auth-name" id="auth-name">Loading data…</span>
+  <div class="tb-right">
+    <div class="data-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">No data loaded</span>
     </div>
-    <button class="btn-sign" id="btn-refresh-hdr" onclick="refreshData()" style="display:none">↻ Refresh</button>
+    <button class="btn-load" onclick="openFilePicker()" id="btn-load-top" aria-label="Load Excel data file">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M4 7l4 4 4-4M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/></svg>
+      Load data
+    </button>
   </div>
 </header>
 
-<!-- ── TABS ── -->
-<div class="tabs" role="tablist">
-  <button class="tab active" role="tab" aria-selected="true" onclick="switchTab('log')">Log Activity</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('dash')">Dashboard <span class="tab-count" id="tc-total">—</span></button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('setup')">Setup &amp; Help</button>
+<!-- ── LOAD SCREEN ── -->
+<div class="load-screen" id="load-screen" role="main" id="main-content">
+  <div class="load-card">
+    <div class="load-icon">📊</div>
+    <div class="load-title">Digital Leads Dashboard</div>
+    <p class="load-sub">Select your <strong>Digital Leads Activity Log.xlsx</strong> file from OneDrive. Everything stays on your device — no upload, no server, no sign-in.</p>
+    <button class="load-btn" onclick="openFilePicker()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="10" rx="1"/><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+      Select Excel file
+    </button>
+    <div class="load-note">
+      Your file is at:<br>
+      <code>OneDrive – Weston College / Digital Leads Activity Log.xlsx</code>
+    </div>
+    <div class="load-recent hidden" id="load-recent">
+      <div class="load-recent-title">Previously loaded</div>
+      <button class="btn-reopen" id="btn-reopen" onclick="reopenFile()">
+        ↻ Reload last file
+      </button>
+      <div style="font-size:.68rem;color:var(--light);margin-top:.4rem;font-family:var(--fm)" id="last-file-name"></div>
+    </div>
+  </div>
 </div>
 
-<!-- ── MAIN ── -->
-<div class="main">
+<!-- ── DASHBOARD ── -->
+<div class="dashboard" id="dashboard" role="main">
 
-  <!-- ══ LOG TAB ══ -->
-  <div class="view active" id="view-log" role="tabpanel">
-  <div class="inner">
-
-    <div class="fallback-banner hidden" id="fallback-banner">
-      <span>⚠</span>
-      <div id="fallback-msg">Connecting to data…</div>
-    </div>
-
-    <div class="form-card">
-      <div class="form-title">Log your activity</div>
-      <div class="form-sub">Record each time you support a colleague or run a Health Check. Takes about 60 seconds.</div>
-
-      <div class="form-grid">
-
-        <div class="form-group">
-          <label for="f-name">Digital Lead name <span class="req">*</span></label>
-          <input type="text" id="f-name" readonly placeholder="Sign in to auto-populate">
-        </div>
-
-        <div class="form-group">
-          <label for="f-date">Date <span class="req">*</span></label>
-          <input type="date" id="f-date">
-        </div>
-
-        <div class="form-group">
-          <label for="f-area">Curriculum area <span class="req">*</span></label>
-          <select id="f-area">
-            <option value="">— Select area —</option>
-            <option>AGF — Arts, Graphics &amp; Fashion</option>
-            <option>AHE — Access to HE</option>
-            <option>ANM — Animal Management</option>
-            <option>BUI — Building Services (Construction)</option>
-            <option>BUS — Business &amp; Tourism</option>
-            <option>CED — Community Education</option>
-            <option>CON — Construction Trades</option>
-            <option>CTC — Construction Training Centre</option>
-            <option>DCI — Digital Computing &amp; IT</option>
-            <option>EEY — Education &amp; Early Years</option>
-            <option>EFE — Engineering WBL FE</option>
-            <option>EGL — English</option>
-            <option>EHE — Engineering Higher Education</option>
-            <option>EMV — Engineering &amp; Motor Vehicle</option>
-            <option>ENG — Engineering (General)</option>
-            <option>ESO — ESOL</option>
-            <option>EXT — External Contracts / Provision</option>
-            <option>FAU — FIP Autism</option>
-            <option>FCO — FIP Complex Needs</option>
-            <option>FEH — FIP Supported Employment Excellence</option>
-            <option>FPL — FIP Pre-Vocational</option>
-            <option>GMA — Games, Media &amp; Animation</option>
-            <option>HAC — Health (inc. Health T-Level)</option>
-            <option>HBH — Hair, Beauty &amp; Hospitality</option>
-            <option>MAT — Maths</option>
-            <option>PAP — Performance &amp; Production</option>
-            <option>PRA — Professional Apprenticeships</option>
-            <option>PRE — Employment Services (Pre-employment)</option>
-            <option>PRS — Professional Studies</option>
-            <option>PSF — Public Services</option>
-            <option>SKB — Skills Bootcamps</option>
-            <option>SMS — Sixth Form</option>
-            <option>SMX — SOMAX (Offsite / Prison)</option>
-            <option>SPO — Sport</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="f-staff">Number of staff supported <span class="req">*</span></label>
-          <input type="number" id="f-staff" min="0" max="50" value="1" placeholder="0">
-        </div>
-
-        <div class="form-group full">
-          <label for="f-focus">Focus area <span class="req">*</span></label>
-          <select id="f-focus" onchange="handleFocusChange()">
-            <option value="">— What did you focus on? —</option>
-            <option value="Teams environment">Teams environment &amp; digital learning spaces</option>
-            <option value="Accessibility">Accessibility &amp; inclusive resources</option>
-            <option value="AI in teaching">AI in teaching and learning</option>
-            <option value="Assessment tools">Assessment &amp; feedback tools</option>
-            <option value="Learner digital support">Learner digital skills support</option>
-            <option value="Data and evidence">Data &amp; evidence use</option>
-            <option value="Health Check">Digital Health Check</option>
-            <option value="Other">Other</option>
-          </select>
-          <div class="other-field" id="other-field">
-            <input type="text" id="f-other" placeholder="Briefly describe the focus area…" style="margin-top:.4rem">
-          </div>
-        </div>
-
-        <div class="form-group full">
-          <label>Colleague confidence by the end</label>
-          <div class="confidence-row">
-            <button type="button" class="conf-btn" id="c1" onclick="selectConf(1)">Not yet confident</button>
-            <button type="button" class="conf-btn" id="c2" onclick="selectConf(2)">Getting there</button>
-            <button type="button" class="conf-btn" id="c3" onclick="selectConf(3)">Confident</button>
-          </div>
-        </div>
-
-        <div class="form-group full">
-          <div class="toggle-row">
-            <label class="toggle" for="f-hc">
-              <input type="checkbox" id="f-hc">
-              <div class="toggle-slider"></div>
-            </label>
-            <span class="toggle-label">Digital Health Check completed this session</span>
-          </div>
-        </div>
-
-        <div class="form-group full">
-          <label for="f-notes">Notes <span style="opacity:.6;font-weight:400">(optional — one sentence is plenty)</span></label>
-          <textarea id="f-notes" placeholder="What did you actually do? e.g. 'Walked through Accessibility Checker together and she audited her assignment brief.'"></textarea>
-        </div>
-
-      </div>
-
-      <div class="form-actions">
-        <button class="btn-submit" id="btn-submit" onclick="submitEntry()">
-          <div class="spinner" id="submit-spinner"></div>
-          Save entry
-        </button>
-        <button class="btn-clear" onclick="clearForm()">Clear form</button>
-        <span class="submit-status" id="submit-status"></span>
-      </div>
-    </div>
-
-    <div class="recent-section">
-      <div class="recent-title">Your recent entries</div>
-      <div id="recent-list"><div class="log-empty">No entries yet. Fill in your first one above.</div></div>
-    </div>
-
-  </div>
+  <!-- Filter Bar -->
+  <div class="filter-bar" role="search" aria-label="Filter data">
+    <span class="filter-label">Filter</span>
+    <select class="filter-select" id="f-dl" onchange="applyFilters()" aria-label="Filter by Digital Lead">
+      <option value="">All Digital Leads</option>
+    </select>
+    <select class="filter-select" id="f-area" onchange="applyFilters()" aria-label="Filter by area">
+      <option value="">All areas</option>
+    </select>
+    <select class="filter-select" id="f-focus" onchange="applyFilters()" aria-label="Filter by focus">
+      <option value="">All focus areas</option>
+    </select>
+    <select class="filter-select" id="f-conf" onchange="applyFilters()" aria-label="Filter by confidence">
+      <option value="">All confidence levels</option>
+      <option>Not yet confident</option>
+      <option>Getting there</option>
+      <option>Confident</option>
+    </select>
+    <select class="filter-select" id="f-hc" onchange="applyFilters()" aria-label="Filter by Health Check">
+      <option value="">Health Check — all</option>
+      <option value="yes">Health Check done</option>
+      <option value="no">No Health Check</option>
+    </select>
+    <div class="filter-sep"></div>
+    <input type="date" class="filter-date" id="f-from" onchange="applyFilters()" aria-label="From date">
+    <span style="font-size:.7rem;color:var(--light)">→</span>
+    <input type="date" class="filter-date" id="f-to" onchange="applyFilters()" aria-label="To date">
+    <div class="filter-sep"></div>
+    <button class="btn-clear-filters" onclick="clearFilters()">Clear all</button>
+    <div class="active-filters" id="active-filters"></div>
   </div>
 
-  <!-- ══ DASHBOARD TAB ══ -->
-  <div class="view" id="view-dash" role="tabpanel">
-  <div class="inner">
+  <!-- Main content -->
+  <div class="main" id="main-content">
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
-      <div style="font-size:.72rem;color:var(--muted);font-family:var(--fm)" id="last-refresh">Data loaded on open · <button onclick="refreshData()" id="btn-refresh" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--fm);font-size:.72rem;text-decoration:underline;padding:0">Refresh now</button></div>
-      <div style="display:flex;gap:.5rem;align-items:center">
-        <a id="excel-open-btn" href="" target="_blank" style="display:none;align-items:center;gap:.35rem;font-size:.72rem;background:var(--navy);color:#fff;padding:4px 12px;border-radius:var(--r);text-decoration:none;font-family:var(--fb)">Open in Excel</a>
+    <!-- Stat cards -->
+    <div class="stats-row" role="region" aria-label="Summary statistics">
+      <div class="stat-card c-teal">
+        <div class="stat-n" id="s-sessions">0</div>
+        <div class="stat-l">Sessions logged</div>
+        <div class="stat-delta" id="s-sessions-d"></div>
+      </div>
+      <div class="stat-card c-blue" style="--mid:var(--blue)">
+        <div class="stat-n" id="s-reach">0</div>
+        <div class="stat-l">Staff reached</div>
+        <div class="stat-delta" id="s-reach-d"></div>
+      </div>
+      <div class="stat-card c-green">
+        <div class="stat-n" id="s-areas">0</div>
+        <div class="stat-l">Areas active</div>
+        <div class="stat-delta" id="s-areas-d"></div>
+      </div>
+      <div class="stat-card c-amber">
+        <div class="stat-n" id="s-hc">0</div>
+        <div class="stat-l">Health Checks</div>
+        <div class="stat-delta" id="s-hc-d"></div>
+      </div>
+      <div class="stat-card c-orange">
+        <div class="stat-n" id="s-conf">0%</div>
+        <div class="stat-l">Confident outcomes</div>
+        <div class="stat-delta" id="s-conf-d"></div>
       </div>
     </div>
 
-    <div class="stats-row">
-      <div class="stat"><div class="stat-n" id="d-total">0</div><div class="stat-l">Total sessions</div></div>
-      <div class="stat"><div class="stat-n" id="d-reach">0</div><div class="stat-l">Staff reached</div></div>
-      <div class="stat"><div class="stat-n" id="d-areas">0</div><div class="stat-l">Areas active</div></div>
-      <div class="stat"><div class="stat-n" id="d-hc">0</div><div class="stat-l">Health Checks</div></div>
-    </div>
-
-    <div class="charts-grid">
+    <!-- Charts row 1: Timeline + Confidence -->
+    <div class="charts-wide" role="region" aria-label="Activity charts">
       <div class="chart-card">
-        <div class="chart-title">Sessions by focus area</div>
-        <div class="chart-wrap"><canvas id="chart-focus"></canvas></div>
+        <div class="chart-hdr">
+          <div class="chart-title">Activity over time</div>
+          <div class="chart-hint">Sessions per week</div>
+        </div>
+        <div class="chart-wrap h160"><canvas id="chart-time" aria-label="Sessions over time"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Confidence outcomes</div>
-        <div class="chart-wrap"><canvas id="chart-conf"></canvas></div>
-      </div>
-      <div class="chart-card wide">
-        <div class="chart-title">Activity over time (sessions per week)</div>
-        <div class="chart-wrap tall"><canvas id="chart-time"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Sessions by curriculum area</div>
-        <div class="chart-wrap tall"><canvas id="chart-area"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Staff reached by Digital Lead</div>
-        <div class="chart-wrap tall"><canvas id="chart-dl"></canvas></div>
+        <div class="chart-hdr">
+          <div class="chart-title">Confidence outcomes</div>
+        </div>
+        <div class="chart-wrap h160"><canvas id="chart-conf" aria-label="Confidence outcomes"></canvas></div>
       </div>
     </div>
 
-    <div class="table-section">
+    <!-- Charts row 2: Focus + Area -->
+    <div class="charts-grid" role="region" aria-label="Focus and area breakdown">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div class="chart-title">Sessions by focus area</div>
+          <div class="chart-hint">Click to filter</div>
+        </div>
+        <div class="chart-wrap h220"><canvas id="chart-focus" aria-label="Sessions by focus area"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div class="chart-title">Staff reached by Digital Lead</div>
+        </div>
+        <div class="chart-wrap h220"><canvas id="chart-dl" aria-label="Staff reached by Digital Lead"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Area chart full width -->
+    <div style="margin-bottom:1.25rem" role="region" aria-label="Sessions by area">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div class="chart-title">Sessions by curriculum area</div>
+          <div class="chart-hint">Click bar to filter</div>
+        </div>
+        <div class="chart-wrap h280"><canvas id="chart-area" aria-label="Sessions by curriculum area"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Data table -->
+    <div class="table-card" role="region" aria-label="Activity log entries">
       <div class="table-hdr">
-        <div class="table-title">All entries</div>
-        <div class="table-filters">
-          <select class="filter-select" id="f-filter-dl" onchange="renderTable()"><option value="">All Digital Leads</option></select>
-          <select class="filter-select" id="f-filter-area" onchange="renderTable()"><option value="">All areas</option></select>
-          <select class="filter-select" id="f-filter-focus" onchange="renderTable()"><option value="">All focus areas</option></select>
-          <button class="btn-export" onclick="exportReport()">Export report</button>
+        <div class="table-title">All entries <span id="row-count" style="font-weight:400;color:var(--muted);font-size:.75rem;font-family:var(--fm)"></span></div>
+        <div class="table-actions">
+          <button class="btn-export" onclick="exportReport()" aria-label="Export filtered report">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9"/></svg>
+            Export report
+          </button>
         </div>
       </div>
-      <div id="table-wrap">
-        <div class="dt-empty">No data yet. Start logging activity to see it here.</div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="data-table" aria-label="Activity log">
+          <thead>
+            <tr>
+              <th onclick="sortTable('date')" aria-sort="none">Date <span class="sort-arrow">↕</span></th>
+              <th onclick="sortTable('name')" aria-sort="none">Digital Lead <span class="sort-arrow">↕</span></th>
+              <th onclick="sortTable('area')" aria-sort="none">Area <span class="sort-arrow">↕</span></th>
+              <th onclick="sortTable('staff')" aria-sort="none">Staff <span class="sort-arrow">↕</span></th>
+              <th onclick="sortTable('focus')" aria-sort="none">Focus <span class="sort-arrow">↕</span></th>
+              <th onclick="sortTable('confidence')" aria-sort="none">Confidence <span class="sort-arrow">↕</span></th>
+              <th>HC</th>
+              <th onclick="sortTable('notes')" aria-sort="none">Notes <span class="sort-arrow">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="8" class="tbl-empty">Load your Excel file to see data</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination" style="display:none">
+        <div id="page-info"></div>
+        <div class="page-btns" id="page-btns"></div>
       </div>
     </div>
 
   </div>
-  </div>
+</div>
 
-  <!-- ══ SETUP TAB ══ -->
-  <div class="view" id="view-setup" role="tabpanel">
-  <div class="inner">
-
-    <div class="setup-card">
-      <div class="setup-title">How this dashboard works</div>
-      <div class="setup-sub">No sign-in required. No IT setup needed. The dashboard fetches the shared Excel workbook via a CORS proxy (corsproxy.io), parses it in the browser with SheetJS, and builds the charts. Anyone with this page URL sees live data — no Microsoft account needed.</div>
-
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1.25rem">
-        <div style="font-size:.65rem;font-family:var(--fm);color:var(--muted);margin-bottom:.3rem;letter-spacing:.05em;text-transform:uppercase">Connection status</div>
-        <div id="conn-indicator" style="font-size:.8rem;font-weight:500">Check the header bar above</div>
+<!-- ── DETAIL PANEL ── -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)" role="dialog" aria-modal="true" aria-label="Entry detail">
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-hdr">
+      <div>
+        <div class="detail-title" id="detail-title">Entry detail</div>
+        <div class="detail-date" id="detail-date"></div>
       </div>
-
-      <div class="setup-step">
-        <div class="step-num" style="background:var(--teal)">1</div>
-        <div class="step-body">
-          <div class="step-title">Digital Leads submit via Microsoft Form</div>
-          <div class="step-desc">Digital Leads use only the Microsoft Form link you share with them. They don't need to open this dashboard at all. Every submission automatically adds a row to the Excel workbook in your OneDrive.</div>
-        </div>
-      </div>
-
-      <div class="setup-step">
-        <div class="step-num" style="background:var(--blue)">2</div>
-        <div class="step-body">
-          <div class="step-title">Dashboard reads live from Excel — no sign-in needed</div>
-          <div class="step-desc">This page fetches the shared Excel workbook via corsproxy.io (a free CORS proxy), parses it in the browser using SheetJS, and builds the charts from the Raw Data sheet. No Microsoft account required. No IT involvement. Works from any browser.</div>
-          <div class="code-block">Dashboard URL: https://gwc25.github.io/Digital-Lead-Activity-Hub/</div>
-          <div class="code-block">Excel file: Digital Leads Activity Log.xlsx (OneDrive)</div>
-        </div>
-      </div>
-
-      <div class="setup-step">
-        <div class="step-num" style="background:var(--navy)">3</div>
-        <div class="step-body">
-          <div class="step-title">If the sharing link changes</div>
-          <div class="step-desc">If you ever regenerate the sharing link on the Excel file, open this HTML file, find the line near the top of the script that starts <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--fm);font-size:.72rem">const SHARING_URL</code> and replace the URL. Save and push to GitHub Pages.</div>
-          <a href="https://weston-my.sharepoint.com/:x:/r/personal/graeme_wright_weston_ac_uk/_layouts/15/Doc.aspx?sourcedoc=%7BE5CC2ADD-F852-4972-BB02-A4C02151A959%7D&file=Digital%20Leads%20Activity%20Log.xlsx&action=edit" target="_blank" class="btn-primary" style="margin-top:.6rem;display:inline-flex;text-decoration:none">Open Excel workbook →</a>
-        </div>
-      </div>
-
-      <hr>
-      <div style="font-size:.72rem;color:var(--muted);line-height:1.6">
-        <strong style="color:var(--navy)">Data &amp; privacy.</strong> All data is stored in the Weston College Microsoft 365 tenant (Graeme Wright's OneDrive — Digital Leads Activity Log.xlsx). Individual staff names are recorded as submitted. No learner personal data is collected. Processed under legitimate interests (quality assurance and professional development). UK GDPR compliant. Data controller: Weston College Group.
-      </div>
+      <button class="detail-close" onclick="closeDetail()" aria-label="Close detail panel">✕</button>
     </div>
-
+    <div class="detail-body" id="detail-body"></div>
   </div>
-  </div>
+</div>
 
-</div><!-- /main -->
-
-
+<input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(event)" aria-label="Select Excel file">
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────
-// Public read-only sharing link to the Excel workbook.
-// Anyone with this link can VIEW (not edit) the file.
-// The dashboard fetches the Raw Data sheet as CSV — no sign-in required.
+// ── STATE ─────────────────────────────────────────────────────
+let allData     = [];   // raw parsed rows
+let filtered    = [];   // after filters applied
+let sortKey     = 'date';
+let sortDir     = -1;   // -1 = desc, 1 = asc
+let currentPage = 1;
+const PAGE_SIZE = 25;
+let fileHandle  = null; // File System Access API handle
+let charts      = {};
 
-const SHARING_URL = 'https://weston-my.sharepoint.com/:x:/g/personal/graeme_wright_weston_ac_uk/IQDdKszlUvhySbsCpMAhUalZAXcElAmJyb290mhZXQgOdFQ?e=toJzlB';
-const EXCEL_EDIT_URL = 'https://weston-my.sharepoint.com/:x:/r/personal/graeme_wright_weston_ac_uk/_layouts/15/Doc.aspx?sourcedoc=%7BE5CC2ADD-F852-4972-BB02-A4C02151A959%7D&file=Digital%20Leads%20Activity%20Log.xlsx&action=edit';
-
-// Column positions in Raw Data sheet (0-based):
-// Id(0), Start time(1), Timestamp(2), Email(3), DLName(4), Area(5),
-// StaffCount(6), Focus(7), OtherDetail(8), Confidence(9), HealthCheck(10), Notes(11)
+// Column names from your actual Excel file (Raw Data sheet)
 const COL = { id:0, startTime:1, timestamp:2, email:3, name:4, area:5,
               staff:6, focus:7, other:8, confidence:9, healthCheck:10, notes:11 };
 
-let allEntries = [];
-let confidenceSelected = 0;
-let chartFocus, chartConf, chartTime, chartArea, chartDL;
-
-// ── INIT ──────────────────────────────────────────────────────
-window.addEventListener('load', async () => {
-  setDefaultDate();
-  loadLocalEntries();
-  renderRecentLocal();
-  buildDashboard();
-  setStatus('loading', 'Fetching live data…');
-  await fetchCSVData();
-  // Set up the Open in Excel button
-  const ob = document.getElementById('excel-open-btn');
-  if (ob) { ob.href = EXCEL_EDIT_URL; ob.style.display = 'inline-flex'; }
-  const rb = document.getElementById('btn-refresh-hdr');
-  if (rb) rb.style.display = 'inline-block';
-});
-
-function setDefaultDate() {
-  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-}
-
-// ── CSV FETCH — NO AUTH REQUIRED ─────────────────────────────
-// OneDrive public sharing links support a CSV download endpoint.
-// We construct it from the sharing URL using Microsoft's download=1 pattern.
-// This works because the file is shared as "Anyone with the link can view".
-
-// ── CORS PROXY + SHEETJS APPROACH ────────────────────────────
-// OneDrive blocks direct fetch from external domains (CORS policy).
-// We route through corsproxy.io which fetches server-side then returns
-// the file to us — no IT involvement, no credentials, no sign-in.
-// SheetJS parses the xlsx binary in the browser.
-
-const CORS_PROXY = 'https://corsproxy.io/?';
-
-function buildDownloadUrl() {
-  // Convert sharing link to direct download
-  return SHARING_URL.replace('/:x:/g/', '/:x:/r/') + '&download=1';
-}
-
-async function fetchCSVData() {
-  // Load SheetJS first if not already loaded
-  if (typeof XLSX === 'undefined') {
-    setStatus('loading', 'Loading parser…');
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+// ── FILE LOADING ──────────────────────────────────────────────
+async function openFilePicker() {
+  // Try File System Access API first (Chrome/Edge — remembers file)
+  if ('showOpenFilePicker' in window) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Excel files', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx','.xls'] } }],
+        multiple: false
+      });
+      fileHandle = handle;
+      const file = await handle.getFile();
+      localStorage.setItem('dl-last-filename', file.name);
+      readFile(file);
+      showReopenButton(file.name);
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return; // user cancelled
+      // Fall through to basic file input
+    }
   }
+  // Fallback: basic file input (works everywhere)
+  document.getElementById('file-input').click();
+}
 
-  setStatus('loading', 'Fetching data from OneDrive…');
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  localStorage.setItem('dl-last-filename', file.name);
+  readFile(file);
+  showReopenButton(file.name);
+  event.target.value = ''; // reset so same file can be reloaded
+}
 
-  const targetUrl = buildDownloadUrl();
-  const proxyUrl  = CORS_PROXY + encodeURIComponent(targetUrl);
+async function reopenFile() {
+  if (fileHandle) {
+    try {
+      const perm = await fileHandle.queryPermission({ mode: 'read' });
+      if (perm === 'granted' || await fileHandle.requestPermission({ mode: 'read' }) === 'granted') {
+        const file = await fileHandle.getFile();
+        readFile(file);
+        return;
+      }
+    } catch(e) {}
+  }
+  // No handle — just open picker again
+  openFilePicker();
+}
 
+function showReopenButton(name) {
+  const el = document.getElementById('load-recent');
+  const nameEl = document.getElementById('last-file-name');
+  if (el) { el.classList.remove('hidden'); }
+  if (nameEl) { nameEl.textContent = name; }
+}
+
+function readFile(file) {
+  setStatus('loading', 'Reading file…');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      // Find Raw Data sheet
+      const sheetName = wb.SheetNames.find(n => n.toLowerCase().replace(/\s/g,'') === 'rawdata') || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+      if (rows.length < 2) { setStatus('warn', 'No data rows found'); return; }
+
+      // Build column map from headers
+      const headers = rows[0].map(h => String(h).toLowerCase().replace(/[\s_]/g,''));
+      const cm = {};
+      headers.forEach((h,i) => cm[h] = i);
+
+      function gc(row, keys, fallback) {
+        for (const k of keys) {
+          if (cm[k] !== undefined && row[cm[k]] !== '' && row[cm[k]] !== undefined) return row[cm[k]];
+        }
+        return fallback !== undefined && row[fallback] !== undefined ? row[fallback] : '';
+      }
+
+      allData = rows.slice(1).map((row, i) => {
+        const ts  = gc(row, ['timestamp','starttime'], COL.timestamp);
+        const dateStr = parseDate(ts);
+        return {
+          id:          i,
+          raw_ts:      ts,
+          date:        dateStr,
+          name:        String(gc(row, ['dlname','name'], COL.name)).trim(),
+          email:       String(gc(row, ['email'], COL.email)).trim(),
+          area:        String(gc(row, ['area'], COL.area)).trim(),
+          staff:       parseInt(gc(row, ['staffcount','staff'], COL.staff)) || 0,
+          focus:       String(gc(row, ['focus'], COL.focus)).trim(),
+          other:       String(gc(row, ['otherdetail','other'], COL.other)).trim(),
+          confidence:  String(gc(row, ['confidence'], COL.confidence)).trim(),
+          healthCheck: String(gc(row, ['healthcheck','hc'], COL.healthCheck)).toLowerCase() === 'yes',
+          notes:       String(gc(row, ['notes'], COL.notes)).trim(),
+        };
+      }).filter(r => r.name && r.name !== 'undefined' && r.name !== '');
+
+      // Sort newest first
+      allData.sort((a,b) => b.date > a.date ? 1 : b.date < a.date ? -1 : 0);
+
+      const t = new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+      setStatus('live', `${allData.length} entries · ${file.name} · loaded ${t}`);
+
+      initDashboard();
+    } catch(err) {
+      console.error(err);
+      setStatus('warn', 'Could not parse file: ' + err.message);
+    }
+  };
+  reader.onerror = () => setStatus('warn', 'Could not read file');
+  reader.readAsArrayBuffer(file);
+}
+
+function parseDate(val) {
+  if (!val) return '';
   try {
-    const r = await fetch(proxyUrl);
-    if (!r.ok) throw new Error(`HTTP ${r.status} from proxy`);
-    const buffer = await r.arrayBuffer();
-    if (buffer.byteLength < 100) throw new Error('Empty response');
-    parseXLSX(buffer);
-  } catch(e) {
-    console.warn('Proxy fetch failed:', e.message);
-    // Try second proxy as fallback
-    await tryFallbackProxy(targetUrl);
-  }
+    const d = new Date(val);
+    if (!isNaN(d)) return d.toISOString().split('T')[0];
+  } catch {}
+  return String(val).split('T')[0].split(' ')[0];
 }
 
-async function tryFallbackProxy(targetUrl) {
-  // allorigins.win is a second reliable CORS proxy
-  const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-  try {
-    const r = await fetch(fallbackUrl);
-    if (!r.ok) throw new Error(`HTTP ${r.status} from fallback proxy`);
-    const buffer = await r.arrayBuffer();
-    if (buffer.byteLength < 100) throw new Error('Empty response');
-    parseXLSX(buffer);
-  } catch(e) {
-    console.warn('Fallback proxy failed:', e.message);
-    setStatus('error', 'Could not load live data — check the sharing link in Setup tab');
-    showFallbackBanner();
-  }
+// ── INIT DASHBOARD ────────────────────────────────────────────
+function initDashboard() {
+  document.getElementById('load-screen').style.display = 'none';
+  document.getElementById('dashboard').classList.add('active');
+  populateFilters();
+  applyFilters();
 }
 
-// Kept for compatibility but no longer used as primary
-async function tryAlternateCSV() { await fetchCSVData(); }
-async function tryXLSXParse()    { await fetchCSVData(); }
+// ── FILTERS ───────────────────────────────────────────────────
+function populateFilters() {
+  const unique = (key) => [...new Set(allData.map(r => r[key]).filter(Boolean))].sort();
+  populate('f-dl',   unique('name'));
+  populate('f-area', unique('area'));
+  populate('f-focus',unique('focus'));
+}
 
-function loadScript(src) {
-  return new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = src; s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
+function populate(id, options) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  const first = sel.options[0];
+  sel.innerHTML = '';
+  sel.appendChild(first);
+  options.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = o;
+    if (o === cur) opt.selected = true;
+    sel.appendChild(opt);
   });
 }
 
-function parseXLSX(buffer) {
-  try {
-    if (typeof XLSX === 'undefined') { showFallbackBanner(); return; }
-    const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
-    const ws = wb.Sheets['Raw Data'];
-    if (!ws) { setStatus('error', 'Raw Data sheet not found'); return; }
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-    // rows[0] = headers, rows[1+] = data
-    if (rows.length < 2) { setStatus('ok', 'Connected — no data yet'); return; }
-    const headers = rows[0].map(h => String(h).toLowerCase().replace(/\s+/g,''));
-    // Build colMap from actual headers
-    const colMap = {};
-    headers.forEach((h, i) => { colMap[h] = i; });
+function applyFilters() {
+  const dl    = document.getElementById('f-dl').value;
+  const area  = document.getElementById('f-area').value;
+  const focus = document.getElementById('f-focus').value;
+  const conf  = document.getElementById('f-conf').value;
+  const hc    = document.getElementById('f-hc').value;
+  const from  = document.getElementById('f-from').value;
+  const to    = document.getElementById('f-to').value;
 
-    function gc(row, key, fallback) {
-      const idx = colMap[key] !== undefined ? colMap[key] : fallback;
-      return row[idx] !== undefined ? row[idx] : '';
+  filtered = allData.filter(r =>
+    (!dl    || r.name  === dl)   &&
+    (!area  || r.area  === area) &&
+    (!focus || r.focus === focus) &&
+    (!conf  || r.confidence === conf) &&
+    (!hc    || (hc === 'yes' ? r.healthCheck : !r.healthCheck)) &&
+    (!from  || r.date >= from) &&
+    (!to    || r.date <= to)
+  );
+
+  // Sort
+  filtered.sort((a,b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (sortKey === 'staff') { av = parseInt(av)||0; bv = parseInt(bv)||0; }
+    if (av < bv) return sortDir;
+    if (av > bv) return -sortDir;
+    return 0;
+  });
+
+  currentPage = 1;
+  updateStats();
+  updateCharts();
+  renderTable();
+  renderActiveFilterChips();
+}
+
+function clearFilters() {
+  ['f-dl','f-area','f-focus','f-conf','f-hc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-from').value = '';
+  document.getElementById('f-to').value   = '';
+  applyFilters();
+}
+
+function renderActiveFilterChips() {
+  const container = document.getElementById('active-filters');
+  const filters = [
+    { id:'f-dl',    label:'Lead' },
+    { id:'f-area',  label:'Area' },
+    { id:'f-focus', label:'Focus' },
+    { id:'f-conf',  label:'Confidence' },
+    { id:'f-hc',    label:'Health Check' },
+    { id:'f-from',  label:'From' },
+    { id:'f-to',    label:'To' },
+  ];
+  container.innerHTML = filters
+    .filter(f => document.getElementById(f.id).value)
+    .map(f => {
+      const val = document.getElementById(f.id).value;
+      return `<span class="filter-chip">${f.label}: ${val}<button onclick="clearFilter('${f.id}')" aria-label="Remove ${f.label} filter">×</button></span>`;
+    }).join('');
+}
+
+function clearFilter(id) {
+  document.getElementById(id).value = '';
+  applyFilters();
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function updateStats() {
+  const total  = filtered.length;
+  const reach  = filtered.reduce((s,r) => s + (r.staff||0), 0);
+  const areas  = new Set(filtered.map(r => r.area?.split(' — ')[0]).filter(Boolean)).size;
+  const hcs    = filtered.filter(r => r.healthCheck).length;
+  const confTotal = filtered.filter(r => r.confidence).length;
+  const confPct = confTotal ? Math.round(filtered.filter(r => r.confidence === 'Confident').length / confTotal * 100) : 0;
+
+  document.getElementById('s-sessions').textContent = total;
+  document.getElementById('s-reach').textContent    = reach;
+  document.getElementById('s-areas').textContent    = areas;
+  document.getElementById('s-hc').textContent       = hcs;
+  document.getElementById('s-conf').textContent     = confPct + '%';
+
+  const pct = (n,d) => d ? Math.round(n/d*100)+'%' : '—';
+  document.getElementById('s-sessions-d').textContent = total === allData.length ? 'All entries' : `${total} of ${allData.length}`;
+  document.getElementById('s-hc-d').textContent = hcs ? `${pct(hcs,total)} of sessions` : '';
+}
+
+// ── CHARTS ────────────────────────────────────────────────────
+const PALETTE = ['#2e75b6','#0f766e','#b45309','#c2410c','#15803d','#6d28d9','#dc2626','#0369a1','#047857','#92400e'];
+
+function chartOpts(extra={}) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{bodyFont:{size:12},titleFont:{size:12}} },
+    scales:{
+      x:{ ticks:{font:{size:11}}, grid:{color:'rgba(0,0,0,.04)'} },
+      y:{ ticks:{font:{size:11},stepSize:1}, grid:{color:'rgba(0,0,0,.04)'}, beginAtZero:true },
+      ...extra.scales
+    },
+    ...extra
+  };
+}
+
+function countBy(arr, key) {
+  const c = {};
+  arr.forEach(r => { const k = r[key]||'Unknown'; c[k]=(c[k]||0)+1; });
+  return c;
+}
+function sumBy(arr, key, val) {
+  const c = {};
+  arr.forEach(r => { const k = r[key]||'Unknown'; c[k]=(c[k]||0)+(r[val]||0); });
+  return c;
+}
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function updateCharts() {
+  buildTimeline();
+  buildConf();
+  buildFocus();
+  buildDL();
+  buildArea();
+}
+
+function buildTimeline() {
+  destroyChart('time');
+  const weeks = {};
+  filtered.forEach(r => {
+    if (!r.date) return;
+    const d = new Date(r.date);
+    d.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const k = d.toISOString().split('T')[0];
+    weeks[k] = (weeks[k]||0)+1;
+  });
+  const sorted = Object.keys(weeks).sort();
+  if (!sorted.length) return;
+  const ctx = document.getElementById('chart-time').getContext('2d');
+  charts['time'] = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: sorted.map(d => { const dt=new Date(d); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }),
+      datasets:[{ data:sorted.map(k=>weeks[k]), borderColor:'#2e75b6', backgroundColor:'rgba(46,117,182,.08)', tension:.35, fill:true, pointRadius:4, pointBackgroundColor:'#2e75b6', pointBorderColor:'#fff', pointBorderWidth:2 }]
+    },
+    options: chartOpts({ plugins:{legend:{display:false}}, scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:10},stepSize:1},beginAtZero:true} } })
+  });
+}
+
+function buildConf() {
+  destroyChart('conf');
+  const labels = ['Confident','Getting there','Not yet confident','Not recorded'];
+  const colors = ['#15803d','#b45309','#c2410c','#cbd5e1'];
+  const counts = labels.map(l => filtered.filter(r => (r.confidence||'Not recorded')===l).length);
+  const ctx = document.getElementById('chart-conf').getContext('2d');
+  charts['conf'] = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data:counts, backgroundColor:colors, borderWidth:0, hoverOffset:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:9, font:{size:10}, padding:8 } } } }
+  });
+}
+
+function buildFocus() {
+  destroyChart('focus');
+  const counts = countBy(filtered, 'focus');
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const ctx = document.getElementById('chart-focus').getContext('2d');
+  charts['focus'] = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: sorted.map(x=>x[0]),
+      datasets:[{ data:sorted.map(x=>x[1]), backgroundColor:sorted.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'), borderRadius:4, borderSkipped:false }]
+    },
+    options: chartOpts({ indexAxis:'y', onClick:(e,els)=>{ if(els[0]){ const label=sorted[els[0].index][0]; document.getElementById('f-focus').value=label; applyFilters(); } }, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} sessions`}}}, scales:{ x:{ticks:{font:{size:10}},beginAtZero:true}, y:{ticks:{font:{size:10}}} } })
+  });
+}
+
+function buildDL() {
+  destroyChart('dl');
+  const sums = sumBy(filtered, 'name', 'staff');
+  const sorted = Object.entries(sums).sort((a,b)=>b[1]-a[1]);
+  const ctx = document.getElementById('chart-dl').getContext('2d');
+  charts['dl'] = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: sorted.map(x=>x[0].split(' ')[0]||x[0]),
+      datasets:[{ data:sorted.map(x=>x[1]), backgroundColor:'#0f766ecc', borderRadius:4, borderSkipped:false }]
+    },
+    options: chartOpts({ indexAxis:'y', onClick:(e,els)=>{ if(els[0]){ const fullName=sorted[els[0].index][0]; document.getElementById('f-dl').value=fullName; applyFilters(); } }, plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>[sorted[c[0].dataIndex][0]],label:c=>`${c.raw} staff reached`}}}, scales:{ x:{ticks:{font:{size:10}},beginAtZero:true}, y:{ticks:{font:{size:10}}} } })
+  });
+}
+
+function buildArea() {
+  destroyChart('area');
+  const counts = countBy(filtered, 'area');
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const ctx = document.getElementById('chart-area').getContext('2d');
+  charts['area'] = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: sorted.map(x=>x[0].split(' — ')[0]||x[0]),
+      datasets:[{ data:sorted.map(x=>x[1]), backgroundColor:'#1d4e89bb', hoverBackgroundColor:'#2e75b6', borderRadius:4, borderSkipped:false }]
+    },
+    options: chartOpts({ onClick:(e,els)=>{ if(els[0]){ const full=sorted[els[0].index][0]; document.getElementById('f-area').value=full; applyFilters(); } }, plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>[sorted[c[0].dataIndex][0]],label:c=>`${c.raw} sessions`}}}, scales:{ x:{ticks:{font:{size:10},maxRotation:45}}, y:{ticks:{font:{size:10}},beginAtZero:true} } })
+  });
+}
+
+// ── TABLE ─────────────────────────────────────────────────────
+const FOCUS_TAGS = {
+  'Teams environment & digital learning spaces':'tag-blue',
+  'Accessibility & inclusive resources':'tag-teal',
+  'AI in teaching and learning':'tag-orange',
+  'Assessment & feedback tools':'tag-amber',
+  'Learner digital skills support':'tag-green',
+  'Data & evidence use':'tag-gray',
+  'Digital Health Check':'tag-blue',
+  'Other':'tag-gray'
+};
+const CONF_TAGS = { 'Confident':'conf-3','Getting there':'conf-2','Not yet confident':'conf-1' };
+
+function renderTable() {
+  const start  = (currentPage-1) * PAGE_SIZE;
+  const page   = filtered.slice(start, start+PAGE_SIZE);
+  const tbody  = document.getElementById('table-body');
+  document.getElementById('row-count').textContent = `(${filtered.length} ${filtered.length===1?'entry':'entries'})`;
+
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="tbl-empty">${allData.length ? 'No entries match the current filters.' : 'Load your Excel file to see data'}</td></tr>`;
+    document.getElementById('pagination').style.display = 'none';
+    return;
+  }
+
+  tbody.innerHTML = page.map((r,i) => {
+    const ftag = FOCUS_TAGS[r.focus]||'tag-gray';
+    const ctag = CONF_TAGS[r.confidence]||'';
+    const focusLabel = r.focus + (r.other ? ` — ${r.other}` : '');
+    const areaCode = r.area?.split(' — ')[0]||r.area;
+    return `<tr onclick="openDetail(${start+i})" tabindex="0" onkeydown="if(event.key==='Enter')openDetail(${start+i})" aria-label="View details for ${r.name} on ${fmtDate(r.date)}">
+      <td>${fmtDate(r.date)}</td>
+      <td><strong>${esc(r.name)}</strong></td>
+      <td><span style="font-family:var(--fm);font-size:.68rem;font-weight:500;color:var(--mid)">${esc(areaCode)}</span></td>
+      <td style="text-align:center;font-weight:600;font-family:var(--fm)">${r.staff}</td>
+      <td><span class="tag ${ftag}">${esc(focusLabel.length>32?focusLabel.slice(0,30)+'…':focusLabel)}</span></td>
+      <td>${r.confidence?`<span class="tag ${ctag}">${esc(r.confidence)}</span>`:'—'}</td>
+      <td style="text-align:center;font-size:1rem">${r.healthCheck?'✓':'—'}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${esc(r.notes)||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pg = document.getElementById('pagination');
+  const pi = document.getElementById('page-info');
+  const pb = document.getElementById('page-btns');
+
+  if (totalPages <= 1) { pg.style.display='none'; return; }
+  pg.style.display='flex';
+
+  const start = (currentPage-1)*PAGE_SIZE+1;
+  const end   = Math.min(currentPage*PAGE_SIZE, filtered.length);
+  pi.textContent = `${start}–${end} of ${filtered.length}`;
+
+  let btns = '';
+  btns += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''} aria-label="Previous page">‹</button>`;
+  for (let p=1;p<=totalPages;p++) {
+    if (totalPages<=7 || p===1 || p===totalPages || Math.abs(p-currentPage)<=1) {
+      btns += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})" aria-label="Page ${p}">${p}</button>`;
+    } else if (Math.abs(p-currentPage)===2) {
+      btns += `<span style="padding:.25rem .2rem;color:var(--light)">…</span>`;
     }
-
-    allEntries = rows.slice(1).map((row, i) => ({
-      id: i,
-      timestamp: gc(row, 'timestamp', COL.timestamp) || gc(row, 'starttime', COL.startTime),
-      name:        String(gc(row, 'dlname', COL.name)),
-      email:       String(gc(row, 'email', COL.email)),
-      area:        String(gc(row, 'area', COL.area)),
-      staff:       parseInt(gc(row, 'staffcount', COL.staff)) || 0,
-      focus:       String(gc(row, 'focus', COL.focus)),
-      other:       String(gc(row, 'otherdetail', COL.other)),
-      confidence:  String(gc(row, 'confidence', COL.confidence)),
-      healthCheck: String(gc(row, 'healthcheck', COL.healthCheck)).toLowerCase() === 'yes',
-      notes:       String(gc(row, 'notes', COL.notes)),
-      date:        '',
-    })).filter(e => e.name && e.name.trim() && e.name !== 'undefined');
-
-    // Derive dates
-    allEntries.forEach(e => {
-      try {
-        if (e.timestamp) {
-          const d = e.timestamp instanceof Date ? e.timestamp : new Date(e.timestamp);
-          if (!isNaN(d)) e.date = d.toISOString().split('T')[0];
-        }
-      } catch {}
-    });
-
-    allEntries.sort((a, b) => (b.timestamp > a.timestamp ? 1 : -1));
-    finaliseData();
-  } catch(e) {
-    console.error('XLSX parse error:', e);
-    setStatus('error', 'Parse error — ' + e.message);
   }
+  btns += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''} aria-label="Next page">›</button>`;
+  pb.innerHTML = btns;
 }
 
-function parseCSV(text) {
-  try {
-    const rows = text.trim().split('\n').map(r => parseCSVRow(r));
-    if (rows.length < 2) { setStatus('ok', 'Connected — no data yet'); return; }
-    const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g,''));
-    const colMap = {};
-    headers.forEach((h, i) => { colMap[h] = i; });
+function goPage(p) {
+  const totalPages = Math.ceil(filtered.length/PAGE_SIZE);
+  if (p<1||p>totalPages) return;
+  currentPage=p;
+  renderTable();
+  document.getElementById('main-content').scrollTop=0;
+}
 
-    function gc(row, key, fallback) {
-      const idx = colMap[key] !== undefined ? colMap[key] : fallback;
-      return row[idx] || '';
+// ── SORT ──────────────────────────────────────────────────────
+function sortTable(key) {
+  if (sortKey===key) sortDir*=-1;
+  else { sortKey=key; sortDir=-1; }
+
+  document.querySelectorAll('.tbl thead th').forEach(th => {
+    th.classList.remove('sorted');
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent='↕';
+  });
+
+  // Find the header for this key
+  const headers = ['date','name','area','staff','focus','confidence',null,'notes'];
+  const idx = headers.indexOf(key);
+  if (idx>=0) {
+    const ths = document.querySelectorAll('.tbl thead th');
+    if (ths[idx]) {
+      ths[idx].classList.add('sorted');
+      const arrow = ths[idx].querySelector('.sort-arrow');
+      if (arrow) arrow.textContent = sortDir===-1?'↓':'↑';
     }
-
-    allEntries = rows.slice(1).map((row, i) => ({
-      id: i,
-      timestamp: gc(row, 'timestamp', COL.timestamp),
-      name:       gc(row, 'dlname',      COL.name),
-      email:      gc(row, 'email',       COL.email),
-      area:       gc(row, 'area',        COL.area),
-      staff:      parseInt(gc(row, 'staffcount', COL.staff)) || 0,
-      focus:      gc(row, 'focus',       COL.focus),
-      other:      gc(row, 'otherdetail', COL.other),
-      confidence: gc(row, 'confidence',  COL.confidence),
-      healthCheck: gc(row, 'healthcheck', COL.healthCheck).toLowerCase() === 'yes',
-      notes:      gc(row, 'notes',       COL.notes),
-      date: '',
-    })).filter(e => e.name && e.name.trim());
-
-    allEntries.forEach(e => {
-      try {
-        if (e.timestamp) {
-          const d = new Date(e.timestamp);
-          if (!isNaN(d)) e.date = d.toISOString().split('T')[0];
-        }
-      } catch {}
-    });
-
-    allEntries.sort((a, b) => (b.timestamp > a.timestamp ? 1 : -1));
-    finaliseData();
-  } catch(e) {
-    console.error('CSV parse error:', e);
-    setStatus('error', 'CSV parse error');
   }
+  applyFilters();
 }
 
-function parseCSVRow(row) {
-  const result = []; let cur = ''; let inQ = false;
-  for (let i = 0; i < row.length; i++) {
-    const c = row[i];
-    if (c === '"') { inQ = !inQ; continue; }
-    if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; continue; }
-    cur += c;
-  }
-  result.push(cur.trim());
-  return result;
+// ── DETAIL PANEL ──────────────────────────────────────────────
+function openDetail(idx) {
+  const r = filtered[idx];
+  if (!r) return;
+
+  document.getElementById('detail-title').textContent = r.name;
+  document.getElementById('detail-date').textContent  = fmtDate(r.date) + (r.email ? ` · ${r.email}` : '');
+
+  const ctag  = CONF_TAGS[r.confidence]||'tag-gray';
+  const ftag  = FOCUS_TAGS[r.focus]||'tag-gray';
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-row">
+      <div class="detail-key">Curriculum area</div>
+      <div class="detail-val">${esc(r.area)||'—'}</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-key">Staff supported</div>
+      <div class="detail-val" style="font-family:var(--fm);font-size:1.2rem;font-weight:700;color:var(--navy)">${r.staff}</div>
+    </div>
+    <hr class="detail-divider">
+    <div class="detail-row">
+      <div class="detail-key">Focus area</div>
+      <div class="detail-val"><span class="tag ${ftag}">${esc(r.focus)}</span>${r.other?`<div style="margin-top:.4rem;font-size:.78rem;color:var(--muted)">${esc(r.other)}</div>`:''}</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-key">Confidence outcome</div>
+      <div class="detail-val">${r.confidence?`<span class="tag ${ctag}">${esc(r.confidence)}</span>`:'Not recorded'}</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-key">Digital Health Check</div>
+      <div class="detail-val">${r.healthCheck?'<span class="tag tag-green">✓ Completed</span>':'<span class="tag tag-gray">Not this session</span>'}</div>
+    </div>
+    ${r.notes?`<hr class="detail-divider"><div class="detail-row"><div class="detail-key">Notes</div><div class="detail-val" style="font-style:italic;color:var(--muted);line-height:1.6">"${esc(r.notes)}"</div></div>`:''}
+    <hr class="detail-divider">
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <button class="btn-export" style="font-size:.72rem" onclick="filterFromDetail('f-dl','${esc(r.name)}')">Filter: this lead</button>
+      <button class="btn-export" style="font-size:.72rem;background:var(--teal)" onclick="filterFromDetail('f-area','${esc(r.area)}')">Filter: this area</button>
+      <button class="btn-export" style="font-size:.72rem;background:var(--amber)" onclick="filterFromDetail('f-focus','${esc(r.focus)}')">Filter: this focus</button>
+    </div>
+  `;
+
+  // Mark row as selected
+  document.querySelectorAll('.tbl tbody tr').forEach(tr => tr.classList.remove('selected'));
+  const rows = document.querySelectorAll('.tbl tbody tr');
+  const pageOffset = (currentPage-1)*PAGE_SIZE;
+  if (rows[idx-pageOffset]) rows[idx-pageOffset].classList.add('selected');
+
+  document.getElementById('detail-overlay').classList.add('open');
 }
 
-function finaliseData() {
-  buildDashboard();
-  renderRecentLocal();
-  document.getElementById('tc-total').textContent = allEntries.length;
-  const t = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-  setStatus('ok', `Live data · ${allEntries.length} entries · refreshed ${t}`);
-  document.getElementById('fallback-banner').classList.add('hidden');
-  const lr = document.getElementById('last-refresh');
-  if (lr) lr.innerHTML = `Last refreshed ${t} · <button onclick="refreshData()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--fm);font-size:.72rem;text-decoration:underline;padding:0">Refresh now</button>`;
+function filterFromDetail(filterId, value) {
+  document.getElementById(filterId).value = value;
+  closeDetail();
+  applyFilters();
+}
+
+function closeDetail(event) {
+  if (event && event.target !== document.getElementById('detail-overlay')) return;
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.querySelectorAll('.tbl tbody tr').forEach(tr => tr.classList.remove('selected'));
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+});
+
+// ── EXPORT ────────────────────────────────────────────────────
+function exportReport() {
+  const total  = filtered.length;
+  const reach  = filtered.reduce((s,r)=>s+(r.staff||0),0);
+  const hcs    = filtered.filter(r=>r.healthCheck).length;
+  const conf3  = filtered.filter(r=>r.confidence==='Confident').length;
+  const confRec= filtered.filter(r=>r.confidence).length;
+
+  const focusCounts = countBy(filtered,'focus');
+  const topFocus = Object.entries(focusCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k} (${v})`).join(', ');
+  const areaCounts = countBy(filtered,'area');
+  const topArea = Object.entries(areaCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k.split(' — ')[0]} (${v})`).join(', ');
+
+  // Active filters
+  const fNames = {  'f-dl':'Digital Lead','f-area':'Area','f-focus':'Focus','f-conf':'Confidence','f-hc':'Health Check','f-from':'From','f-to':'To' };
+  const activeF = Object.entries(fNames).filter(([id])=>document.getElementById(id)?.value).map(([id,label])=>`${label}: ${document.getElementById(id).value}`).join(' · ');
+
+  const report = `DIGITAL LEADS ACTIVITY REPORT
+Generated: ${new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+${activeF ? `Filters: ${activeF}` : 'Showing: all data'}
+
+━━━ SUMMARY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Sessions logged:       ${total}
+Total staff reached:   ${reach}
+Health Checks done:    ${hcs} (${total?Math.round(hcs/total*100):0}% of sessions)
+Confident outcomes:    ${conf3} of ${confRec} recorded (${confRec?Math.round(conf3/confRec*100):0}%)
+
+━━━ TOP FOCUS AREAS ━━━━━━━━━━━━━━━━━━━━━━━━
+${topFocus||'—'}
+
+━━━ MOST ACTIVE AREAS ━━━━━━━━━━━━━━━━━━━━━━
+${topArea||'—'}
+
+━━━ FULL LOG ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${filtered.map(r=>`${fmtDate(r.date)} | ${r.name} | ${r.area?.split(' — ')[0]||'?'} | ${r.focus} | ${r.staff} staff | ${r.confidence||'—'}${r.healthCheck?' | ✓ HC':''}${r.notes?' | '+r.notes:''}`).join('\n')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Weston College Group · Digital Pedagogy Coach · ${new Date().getFullYear()}`;
+
+  navigator.clipboard.writeText(report).then(()=>{
+    const btn = document.querySelector('.btn-export');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copied';
+    setTimeout(()=>btn.innerHTML=orig, 2000);
+  }).catch(()=>{
+    // Fallback: open in new window
+    const w = window.open('');
+    w.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;padding:2rem">${report}</pre>`);
+  });
 }
 
 // ── STATUS ────────────────────────────────────────────────────
 function setStatus(state, msg) {
-  const dot  = document.getElementById('auth-dot');
-  const name = document.getElementById('auth-name');
-  dot.className = 'auth-dot' + (state === 'ok' ? ' ok' : state === 'error' ? ' err' : '');
-  name.textContent = msg;
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  dot.className = 'status-dot' + (state==='live'?' live':state==='warn'?' warn':'');
+  text.textContent = msg;
 }
 
-function showFallbackBanner() {
-  const b = document.getElementById('fallback-banner');
-  const m = document.getElementById('fallback-msg');
-  if (m) m.innerHTML = `Could not load live data from OneDrive. Check the sharing link is set to "Anyone with the link can view". <a href="${EXCEL_EDIT_URL}" target="_blank" style="color:var(--amber)">Open Excel file →</a>`;
-  b.classList.remove('hidden');
+// ── UTILS ─────────────────────────────────────────────────────
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-// ── REFRESH ───────────────────────────────────────────────────
-async function refreshData() {
-  setStatus('loading', 'Refreshing…');
-  await fetchCSVData();
-}
-
-// Expose handleSignIn as no-op (button removed but referenced in old code)
-function handleSignIn() { refreshData(); }
-
-// ── LOCAL STORAGE ──────────────────────────────────────────
-const LS_KEY = 'dl-log-entries';
-function loadLocalEntries() {
-  try { const d = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); if (allEntries.length === 0) allEntries = d; } catch{}
-}
-function saveLocal(entry) {
-  try {
-    const d = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-    d.unshift(entry);
-    localStorage.setItem(LS_KEY, JSON.stringify(d.slice(0, 200)));
-  } catch{}
-}
-
-// ── FORM ──────────────────────────────────────────────────
-function handleFocusChange() {
-  const val = document.getElementById('f-focus').value;
-  document.getElementById('other-field').classList.toggle('show', val === 'Other');
-}
-
-function selectConf(n) {
-  confidenceSelected = n;
-  [1,2,3].forEach(i => {
-    const b = document.getElementById('c' + i);
-    b.className = 'conf-btn' + (i === n ? ` selected sel-${n}` : '');
-  });
-}
-
-function clearForm() {
-  document.getElementById('f-area').value = '';
-  document.getElementById('f-staff').value = 1;
-  document.getElementById('f-focus').value = '';
-  document.getElementById('f-other').value = '';
-  document.getElementById('f-notes').value = '';
-  document.getElementById('f-hc').checked = false;
-  document.getElementById('other-field').classList.remove('show');
-  confidenceSelected = 0;
-  [1,2,3].forEach(i => document.getElementById('c' + i).className = 'conf-btn');
-  setDefaultDate();
-  document.getElementById('submit-status').textContent = '';
-}
-
-async function submitEntry() {
-  const name  = document.getElementById('f-name').value.trim();
-  const date  = document.getElementById('f-date').value;
-  const area  = document.getElementById('f-area').value;
-  const staff = parseInt(document.getElementById('f-staff').value) || 0;
-  const focus = document.getElementById('f-focus').value;
-  const other = document.getElementById('f-other').value.trim();
-  const notes = document.getElementById('f-notes').value.trim();
-  const hc    = document.getElementById('f-hc').checked;
-
-  const confLabels = { 1: 'Not yet confident', 2: 'Getting there', 3: 'Confident' };
-
-  if (!name || !date || !area || !focus) {
-    showStatus('Please complete the required fields.', false);
-    return;
-  }
-  if (focus === 'Other' && !other) {
-    showStatus('Please describe the focus area.', false);
-    return;
-  }
-
-  const entry = {
-    name, date, area, staff, focus,
-    other: focus === 'Other' ? other : '',
-    confidence: confidenceSelected ? confLabels[confidenceSelected] : '',
-    healthCheck: hc,
-    notes,
-    ts: Date.now()
-  };
-
-  const btn = document.getElementById('btn-submit');
-  const spinner = document.getElementById('submit-spinner');
-  btn.disabled = true;
-  spinner.classList.add('show');
-  showStatus('Saving…', null);
-
-  saveLocal(entry);
-  allEntries.unshift(entry);
-  // Note: permanent data lives in Microsoft Forms → Excel.
-  // This local save lets Digital Leads see their own history in the dashboard.
-  const online = false; // form submission is via Microsoft Forms link, not this tool
-  if (false) {
-    showStatus('', true);
-  } else {
-    showStatus('✓ Saved locally. Submit via the Forms link for the shared record.', true);
-    // Mailto fallback
-    const subject = encodeURIComponent(`DL Log — ${name} — ${date}`);
-    const body = encodeURIComponent(
-      `Digital Lead: ${name}\nDate: ${date}\nArea: ${area}\nStaff supported: ${staff}\nFocus: ${focus}${focus==='Other'?' — '+other:''}\nConfidence: ${entry.confidence||'Not recorded'}\nHealth Check: ${hc?'Yes':'No'}\nNotes: ${notes||'—'}`
-    );
-    document.getElementById('submit-status').innerHTML += ` &nbsp;<a href="mailto:graeme.wright@weston.ac.uk?subject=${subject}&body=${body}" style="color:var(--blue);font-size:.72rem">Send to DPC by email →</a>`;
-  }
-
-  btn.disabled = false;
-  spinner.classList.remove('show');
-  buildDashboard();
-  renderRecentLocal();
-  clearForm();
-}
-
-function showStatus(msg, ok) {
-  const el = document.getElementById('submit-status');
-  el.textContent = msg;
-  el.className = 'submit-status' + (ok === true ? ' ok' : ok === false ? ' err' : '');
-}
-
-// ── RECENT LIST ────────────────────────────────────────────
-function renderRecentLocal() {
-  const el = document.getElementById('recent-list');
-  const myName = document.getElementById('f-name').value;
-  const mine = allEntries.filter(e => !myName || e.name === myName).slice(0, 5);
-  if (!mine.length) { el.innerHTML = '<div class="log-empty">No entries yet.</div>'; return; }
-  const focusTags = {
-    'Teams environment':'tag-blue','Accessibility':'tag-teal','AI in teaching':'tag-orange',
-    'Assessment tools':'tag-amber','Learner digital support':'tag-green',
-    'Data and evidence':'tag-gray','Health Check':'tag-blue','Other':'tag-gray'
-  };
-  el.innerHTML = mine.map(e => `
-    <div class="log-item">
-      <div class="log-date">${fmtDate(e.date)}</div>
-      <div class="log-body">
-        <div class="log-focus"><span class="tag ${focusTags[e.focus]||'tag-gray'}">${e.focus}${e.other?' — '+e.other:''}</span></div>
-        <div class="log-meta">${e.area} · ${e.staff} staff · ${e.confidence||'—'}</div>
-        ${e.notes?`<div class="log-note">${e.notes}</div>`:''}
-      </div>
-    </div>`).join('');
-}
-
-// ── DASHBOARD ──────────────────────────────────────────────
-function buildDashboard() {
-  const entries = filteredEntries();
-  const total = entries.length;
-  const reach = entries.reduce((s, e) => s + (e.staff || 0), 0);
-  const areas = new Set(entries.map(e => e.area?.split(' — ')[0])).size;
-  const hcs   = entries.filter(e => e.healthCheck).length;
-
-  document.getElementById('d-total').textContent = total;
-  document.getElementById('d-reach').textContent = reach;
-  document.getElementById('d-areas').textContent = areas;
-  document.getElementById('d-hc').textContent   = hcs;
-  document.getElementById('tc-total').textContent = allEntries.length;
-
-  buildChartFocus(entries);
-  buildChartConf(entries);
-  buildChartTime(entries);
-  buildChartArea(entries);
-  buildChartDL(entries);
-  populateFilters();
-  renderTable();
-}
-
-function filteredEntries() { return allEntries; }
-
-function buildChartFocus(entries) {
-  const counts = {};
-  entries.forEach(e => { const k = e.focus || 'Unknown'; counts[k] = (counts[k]||0)+1; });
-  const labels = Object.keys(counts);
-  const data   = labels.map(l => counts[l]);
-  const palette = ['#2e75b6','#0f766e','#c2410c','#b45309','#15803d','#6b7280','#6d28d9','#dc2626'];
-
-  const ctx = document.getElementById('chart-focus').getContext('2d');
-  if (chartFocus) chartFocus.destroy();
-  chartFocus = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: labels.map((_, i) => palette[i % palette.length]), borderRadius: 4, borderSkipped: false }]},
-    options: opts({ indexAxis: 'y', plugins: { legend: { display: false } } })
-  });
-}
-
-function buildChartConf(entries) {
-  const labels = ['Not yet confident', 'Getting there', 'Confident', 'Not recorded'];
-  const colors = ['#ea580c','#b45309','#15803d','#d1d5db'];
-  const counts = labels.map(l => entries.filter(e => (e.confidence || 'Not recorded') === l).length);
-  const ctx = document.getElementById('chart-conf').getContext('2d');
-  if (chartConf) chartConf.destroy();
-  chartConf = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]},
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
-  });
-}
-
-function buildChartTime(entries) {
-  const weeks = {};
-  entries.forEach(e => {
-    if (!e.date) return;
-    const d = new Date(e.date);
-    const monday = new Date(d);
-    monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-    const k = monday.toISOString().split('T')[0];
-    weeks[k] = (weeks[k] || 0) + 1;
-  });
-  const sorted = Object.keys(weeks).sort();
-  const ctx = document.getElementById('chart-time').getContext('2d');
-  if (chartTime) chartTime.destroy();
-  chartTime = new Chart(ctx, {
-    type: 'line',
-    data: { labels: sorted.map(d => fmtDate(d)), datasets: [{ data: sorted.map(k => weeks[k]), borderColor: '#2e75b6', backgroundColor: 'rgba(46,117,182,.1)', tension: .3, fill: true, pointRadius: 4, pointBackgroundColor: '#2e75b6' }]},
-    options: opts({ plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } } } })
-  });
-}
-
-function buildChartArea(entries) {
-  const counts = {};
-  entries.forEach(e => { const k = e.area?.split(' — ')[0] || 'Unknown'; counts[k] = (counts[k]||0)+1; });
-  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 12);
-  const ctx = document.getElementById('chart-area').getContext('2d');
-  if (chartArea) chartArea.destroy();
-  chartArea = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: sorted.map(x=>x[0]), datasets: [{ data: sorted.map(x=>x[1]), backgroundColor: '#deeaf1', borderColor: '#2e75b6', borderWidth: 1.5, borderRadius: 3, borderSkipped: false }]},
-    options: opts({ indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } } } })
-  });
-}
-
-function buildChartDL(entries) {
-  const counts = {};
-  entries.forEach(e => { const k = e.name || 'Unknown'; counts[k] = (counts[k]||0) + (e.staff||0); });
-  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-  const ctx = document.getElementById('chart-dl').getContext('2d');
-  if (chartDL) chartDL.destroy();
-  chartDL = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: sorted.map(x=>x[0]), datasets: [{ data: sorted.map(x=>x[1]), backgroundColor: '#ccfbf1', borderColor: '#0f766e', borderWidth: 1.5, borderRadius: 3, borderSkipped: false }]},
-    options: opts({ indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } } } })
-  });
-}
-
-function opts(extra = {}) {
-  return {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12 } }, ...(extra.plugins || {}) },
-    scales: {
-      x: { ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.05)' } },
-      y: { ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.05)' } },
-      ...(extra.scales || {})
-    },
-    ...Object.fromEntries(Object.entries(extra).filter(([k]) => !['plugins','scales'].includes(k)))
-  };
-}
-
-// ── TABLE ──────────────────────────────────────────────────
-function populateFilters() {
-  const dls   = [...new Set(allEntries.map(e => e.name).filter(Boolean))].sort();
-  const areas = [...new Set(allEntries.map(e => e.area?.split(' — ')[0]).filter(Boolean))].sort();
-  const foci  = [...new Set(allEntries.map(e => e.focus).filter(Boolean))].sort();
-
-  populateSelect('f-filter-dl',   dls,   'All Digital Leads');
-  populateSelect('f-filter-area', areas, 'All areas');
-  populateSelect('f-filter-focus',foci,  'All focus areas');
-}
-
-function populateSelect(id, options, placeholder) {
-  const el = document.getElementById(id);
-  const cur = el.value;
-  el.innerHTML = `<option value="">${placeholder}</option>` + options.map(o => `<option${o===cur?' selected':''}>${o}</option>`).join('');
-}
-
-function renderTable() {
-  const dlF    = document.getElementById('f-filter-dl').value;
-  const areaF  = document.getElementById('f-filter-area').value;
-  const focusF = document.getElementById('f-filter-focus').value;
-
-  let rows = allEntries.filter(e =>
-    (!dlF    || e.name === dlF) &&
-    (!areaF  || e.area?.startsWith(areaF)) &&
-    (!focusF || e.focus === focusF)
-  );
-
-  const wrap = document.getElementById('table-wrap');
-  if (!rows.length) { wrap.innerHTML = '<div class="dt-empty">No entries match the current filters.</div>'; return; }
-
-  const focusTags = {
-    'Teams environment':'tag-blue','Accessibility':'tag-teal','AI in teaching':'tag-orange',
-    'Assessment tools':'tag-amber','Learner digital support':'tag-green',
-    'Data and evidence':'tag-gray','Health Check':'tag-blue','Other':'tag-gray'
-  };
-  const confTags = { 'Not yet confident':'tag-red', 'Getting there':'tag-amber', 'Confident':'tag-green' };
-
-  wrap.innerHTML = `<table class="dt">
-    <thead><tr><th>Date</th><th>Digital Lead</th><th>Area</th><th>Staff</th><th>Focus</th><th>Confidence</th><th>HC</th><th>Notes</th></tr></thead>
-    <tbody>${rows.map(e => `
-    <tr>
-      <td>${fmtDate(e.date)}</td>
-      <td>${e.name}</td>
-      <td>${e.area?.split(' — ')[0] || '—'}</td>
-      <td style="text-align:center;font-weight:600">${e.staff || 0}</td>
-      <td><span class="tag ${focusTags[e.focus]||'tag-gray'}">${e.focus}${e.other?' — '+e.other:''}</span></td>
-      <td>${e.confidence?`<span class="tag ${confTags[e.confidence]||'tag-gray'}">${e.confidence}</span>`:'—'}</td>
-      <td style="text-align:center">${e.healthCheck?'✓':'—'}</td>
-      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.notes||'—'}</td>
-    </tr>`).join('')}
-    </tbody></table>`;
-}
-
-// ── EXPORT ────────────────────────────────────────────────
-function exportReport() {
-  const dlF    = document.getElementById('f-filter-dl').value;
-  const areaF  = document.getElementById('f-filter-area').value;
-  const focusF = document.getElementById('f-filter-focus').value;
-  let rows = allEntries.filter(e =>
-    (!dlF    || e.name === dlF) &&
-    (!areaF  || e.area?.startsWith(areaF)) &&
-    (!focusF || e.focus === focusF)
-  );
-  const total = rows.length;
-  const reach = rows.reduce((s,e)=>s+(e.staff||0),0);
-  const hcs   = rows.filter(e=>e.healthCheck).length;
-  const conf3 = rows.filter(e=>e.confidence==='Confident').length;
-  const focusCounts = {};
-  rows.forEach(e => { focusCounts[e.focus]=(focusCounts[e.focus]||0)+1; });
-  const topFocus = Object.entries(focusCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k} (${v})`).join(', ');
-
-  const text = `Digital Leads Activity Report
-Generated: ${new Date().toLocaleDateString('en-GB')}
-Filters: ${dlF||'All DLs'} · ${areaF||'All areas'} · ${focusF||'All focus areas'}
-
-SUMMARY
-Sessions logged:     ${total}
-Total staff reached: ${reach}
-Health Checks done:  ${hcs}
-Confident outcomes:  ${conf3} of ${rows.filter(e=>e.confidence).length} recorded
-
-TOP FOCUS AREAS: ${topFocus || '—'}
-
-FULL LOG
-${rows.map(e=>`${fmtDate(e.date)} | ${e.name} | ${e.area?.split(' — ')[0]||'?'} | ${e.focus} | ${e.staff} staff | ${e.confidence||'—'}${e.notes?' | '+e.notes:''}`).join('\n')}`;
-
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector('.btn-export');
-    const orig = btn.textContent;
-    btn.textContent = 'Copied ✓';
-    setTimeout(() => btn.textContent = orig, 2000);
-  });
-}
-
-// ── UI HELPERS ────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const map = { log: 0, dash: 1, setup: 2 };
-  document.querySelectorAll('.tab')[map[name]].classList.add('active');
-  document.getElementById('view-' + name).classList.add('active');
-  if (name === 'dash') buildDashboard();
-}
-
 function fmtDate(d) {
   if (!d) return '—';
-  try {
-    const dt = new Date(d);
-    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
-  } catch { return d; }
+  try { return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}); }
+  catch { return d; }
 }
+
+// ── CHECK FOR PREVIOUS FILE ON LOAD ───────────────────────────
+window.addEventListener('load', () => {
+  const lastName = localStorage.getItem('dl-last-filename');
+  if (lastName) showReopenButton(lastName);
+});
 </script>
+</body>
+</html>

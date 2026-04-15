@@ -805,10 +805,13 @@ function buildTimeline() {
   const weeks = {};
   filtered.forEach(r => {
     if (!r.date) return;
-    const d = new Date(r.date);
-    d.setDate(d.getDate() - ((d.getDay()+6)%7));
-    const k = d.toISOString().split('T')[0];
-    weeks[k] = (weeks[k]||0)+1;
+    try {
+      const d = new Date(r.date);
+      if (isNaN(d.getTime())) return;
+      d.setDate(d.getDate() - ((d.getDay()+6)%7));
+      const k = d.toISOString().split('T')[0];
+      weeks[k] = (weeks[k]||0)+1;
+    } catch(e) { return; }
   });
   const sorted = Object.keys(weeks).sort();
   if (!sorted.length) return;
@@ -1144,7 +1147,7 @@ function fmtDate(d) {
   if (!d) return '—';
   try { 
     const dt = new Date(d);
-    if (isNaN(dt)) return String(d).substring(0,10) || '—';
+    if (isNaN(dt.getTime())) return String(d).substring(0,10) || '—';
     return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}); 
   }
   catch { return String(d).substring(0,10) || '—'; }
